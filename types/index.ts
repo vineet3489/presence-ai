@@ -1,4 +1,4 @@
-export type SessionType = 'appearance' | 'voice' | 'date_prep';
+export type SessionType = 'appearance' | 'voice' | 'date_prep' | 'chat_coach';
 
 export interface UserProfile {
   id: string;
@@ -106,6 +106,45 @@ export interface PresenceScore {
   voice_score: number | null;
   social_score: number | null;
   composite_score: number;
+}
+
+export type ChatIntention =
+  | 'keep_it_fun'
+  | 'build_connection'
+  | 'romantic_escalate'
+  | 'get_a_date'
+  | 're_engage';
+
+export interface ChatCoachData {
+  chatText: string;
+  platform: 'instagram' | 'whatsapp' | 'other';
+  yourName: string;
+  intention: ChatIntention;
+}
+
+export interface SuggestedReply {
+  message: string;
+  tone: string;
+  reasoning: string;
+}
+
+export interface ChatCoachResult {
+  yourPersonality: {
+    summary: string;
+    strengths: string[];
+    blindSpots: string[];
+  };
+  theirPersonality: {
+    summary: string;
+    whatTheyRespondTo: string[];
+    redFlags: string[];
+  };
+  dynamic: string;
+  interestLevel: number;
+  suggestedReplies: SuggestedReply[];
+  doList: string[];
+  dontList: string[];
+  overallRead: string;
 }
 
 export interface QuizQuestion {

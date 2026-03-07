@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { compositeScore } from '@/lib/scoring/presenceScore';
 import { CompositeScoreRing, PresenceScoreRing } from '@/components/dashboard/PresenceScoreRing';
+import { DailyTips } from '@/components/dashboard/DailyTips';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Mic, Heart, ArrowRight, Zap } from 'lucide-react';
+import { Camera, Mic, Heart, ArrowRight, MessageCircleHeart } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import type { AnalysisSession } from '@/types';
 
@@ -23,7 +24,6 @@ export default async function DashboardPage() {
 
   if (!profile?.onboarding_completed) redirect('/onboarding');
 
-  // Calculate scores from most recent sessions of each type
   const appearanceSession = sessions?.find((s: AnalysisSession) => s.session_type === 'appearance');
   const voiceSession = sessions?.find((s: AnalysisSession) => s.session_type === 'voice');
   const dateSession = sessions?.find((s: AnalysisSession) => s.session_type === 'date_prep');
@@ -34,16 +34,19 @@ export default async function DashboardPage() {
   const composite = compositeScore(appearanceScore, voiceScore, socialScore);
 
   const SESSION_LABELS: Record<string, string> = {
-    appearance: 'Face Scan', voice: 'Voice Check', date_prep: 'Date Prep',
+    appearance: 'Face Scan', voice: 'Voice Check', date_prep: 'Date Prep', chat_coach: 'Chat Coach',
   };
+
+  const xp: number = profile?.presence_xp ?? 0;
+  const streak: number = profile?.tip_streak ?? 0;
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-white">Your Dashboard</h1>
-        <p className="text-slate-400 mt-1">
-          Welcome back — here's where you stand
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-white">Your Dashboard</h1>
+          <p className="text-slate-400 mt-1">Welcome back — here&apos;s where you stand</p>
+        </div>
       </div>
 
       {/* Presence Score + Pillars */}
@@ -60,38 +63,24 @@ export default async function DashboardPage() {
         <Card className="p-6">
           <CardTitle className="mb-6 text-base">Score Breakdown</CardTitle>
           <div className="flex justify-around">
-            <PresenceScoreRing
-              score={appearanceScore ?? 0}
-              label="Appearance"
-              color="#8b5cf6"
-              size={100}
-            />
-            <PresenceScoreRing
-              score={voiceScore ?? 0}
-              label="Voice"
-              color="#38bdf8"
-              size={100}
-            />
-            <PresenceScoreRing
-              score={socialScore ?? 0}
-              label="Social IQ"
-              color="#f472b6"
-              size={100}
-            />
+            <PresenceScoreRing score={appearanceScore ?? 0} label="Appearance" color="#8b5cf6" size={100} />
+            <PresenceScoreRing score={voiceScore ?? 0} label="Voice" color="#38bdf8" size={100} />
+            <PresenceScoreRing score={socialScore ?? 0} label="Social IQ" color="#f472b6" size={100} />
           </div>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
         {[
-          { href: '/face-scan', icon: Camera, label: 'Scan My Look', color: 'text-violet-400', desc: 'Get style & appearance coaching' },
-          { href: '/voice-check', icon: Mic, label: 'Voice Check', color: 'text-sky-400', desc: 'Analyze how you speak' },
+          { href: '/face-scan', icon: Camera, label: 'Scan My Look', color: 'text-violet-400', desc: 'Style & appearance coaching' },
+          { href: '/voice-check', icon: Mic, label: 'Voice Check', color: 'text-sky-400', desc: 'Clarity, tone & grammar' },
           { href: '/date-prep', icon: Heart, label: 'Date Prep', color: 'text-pink-400', desc: 'Personalized date coaching' },
+          { href: '/chat-coach', icon: MessageCircleHeart, label: 'Chat Coach', color: 'text-rose-400', desc: 'Analyze your DMs' },
         ].map(({ href, icon: Icon, label, color, desc }) => (
           <Link key={href} href={href}>
             <Card className="p-5 hover:border-slate-600 transition-colors cursor-pointer group">
-              <Icon size={24} className={`${color} mb-3`} />
+              <Icon size={22} className={`${color} mb-3`} />
               <p className="font-semibold text-white text-sm group-hover:text-violet-300 transition-colors">{label}</p>
               <p className="text-xs text-slate-500 mt-1">{desc}</p>
               <ArrowRight size={14} className="text-slate-600 group-hover:text-violet-400 mt-3 transition-colors" />
@@ -100,20 +89,14 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Micro Challenge + Recent Sessions */}
+      {/* Daily Tips + Recent Sessions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-violet-800/30 bg-violet-900/10">
+        <Card className="border-slate-800">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-violet-400" />
-              <CardTitle className="text-sm">Today's Micro-Challenge</CardTitle>
-            </div>
+            <CardTitle className="text-sm">Today&apos;s Tips</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              Stand in front of a mirror for 60 seconds. Practice a confident, relaxed smile —
-              eyes soft, jaw unclenched. Notice how small shifts in expression change how you feel.
-            </p>
+            <DailyTips initialXp={xp} initialStreak={streak} />
           </CardContent>
         </Card>
 
@@ -136,7 +119,7 @@ export default async function DashboardPage() {
                 {sessions.map((s: AnalysisSession) => (
                   <li key={s.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{SESSION_LABELS[s.session_type]}</Badge>
+                      <Badge variant="secondary">{SESSION_LABELS[s.session_type] ?? s.session_type}</Badge>
                       <span className="text-slate-500 text-xs">{formatDate(s.created_at)}</span>
                     </div>
                     <span className="text-violet-400 font-semibold">

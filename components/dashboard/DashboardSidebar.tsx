@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut } from 'lucide-react';
+import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { href: '/face-scan', label: 'Face Scan', icon: Camera },
   { href: '/voice-check', label: 'Voice Check', icon: Mic },
   { href: '/date-prep', label: 'Date Prep', icon: Heart },
+  { href: '/chat-coach', label: 'Chat Coach', icon: MessageCircleHeart },
   { href: '/progress', label: 'Progress', icon: TrendingUp },
 ];
 
