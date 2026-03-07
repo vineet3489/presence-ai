@@ -1,38 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Button } from '@/components/ui/button';
 import { Loader2, RotateCcw } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import type { VoiceResult } from '@/types';
 
-type State = 'idle' | 'analyzing' | 'done' | 'error';
+type State = 'loading' | 'idle' | 'analyzing' | 'done' | 'error';
 
 const PROMPT = "Tell me about yourself — your work, what you're passionate about, and what you're looking forward to right now.";
 
 export default function VoiceCheckPage() {
-  const [state, setState] = useState<State>('idle');
-  const [transcript, setTranscript] = useState('');
-  const [duration, setDuration] = useState(0);
+  const [state, setState] = useState<State>('loading');
   const [result, setResult] = useState<VoiceResult | null>(null);
   const [score, setScore] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
-  function handleTranscript(text: string, dur: number) {
-    setTranscript(text);
-    setDuration(dur);
-  }
+  // Load last saved session on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('analysis_sessions')
+      .select('voice_result, voice_score')
+      .eq('session_type', 'voice')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data?.voice_result) {
+          setResult(data.voice_result as VoiceResult);
+          setScore(data.voice_score ?? 0);
+          setState('done');
+        } else {
+          setState('idle');
+        }
+      });
+  }, []);
 
-  async function handleAnalyze() {
-    if (!transcript) return;
+  // Auto-analyze as soon as transcript arrives — no manual button needed
+  async function handleTranscript(text: string, dur: number) {
+    if (!text) return;
     setState('analyzing');
     setErrorMsg('');
     try {
       const res = await fetch('/api/analyze-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript, durationSeconds: duration }),
+        body: JSON.stringify({ transcript: text, durationSeconds: dur }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
@@ -47,11 +63,17 @@ export default function VoiceCheckPage() {
 
   function reset() {
     setState('idle');
-    setTranscript('');
-    setDuration(0);
     setResult(null);
     setScore(0);
     setErrorMsg('');
+  }
+
+  if (state === 'loading') {
+    return (
+      <div className="p-8 max-w-2xl mx-auto flex items-center justify-center py-24">
+        <Loader2 size={28} className="animate-spin text-sky-400" />
+      </div>
+    );
   }
 
   return (
@@ -67,23 +89,17 @@ export default function VoiceCheckPage() {
         <div className="space-y-6">
           <TranscriptViewer result={result} score={score} />
           <Button variant="outline" onClick={reset} className="w-full gap-2">
-            <RotateCcw size={16} /> Check Again
+            <RotateCcw size={16} /> Record Again
           </Button>
         </div>
       ) : (
         <div className="space-y-6">
           <VoiceRecorder onTranscript={handleTranscript} prompt={PROMPT} />
 
-          {transcript && state === 'idle' && (
-            <Button onClick={handleAnalyze} className="w-full" size="lg">
-              Analyze My Voice
-            </Button>
-          )}
-
           {state === 'analyzing' && (
             <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
               <Loader2 size={32} className="animate-spin text-sky-400" />
-              <p className="text-sm">Analyzing your speech...</p>
+              <p className="text-sm">Analyzing your speech…</p>
               <p className="text-xs text-slate-600">Checking grammar, tone, and clarity</p>
             </div>
           )}

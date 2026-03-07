@@ -1,21 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
 import { Loader2, RotateCcw } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import type { AppearanceResult } from '@/types';
 
-type State = 'idle' | 'captured' | 'analyzing' | 'done' | 'error';
+type State = 'loading' | 'idle' | 'captured' | 'analyzing' | 'done' | 'error';
 
 export default function FaceScanPage() {
-  const [state, setState] = useState<State>('idle');
+  const [state, setState] = useState<State>('loading');
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [capturedMediaType, setCapturedMediaType] = useState<'image/jpeg' | 'image/png'>('image/jpeg');
   const [result, setResult] = useState<AppearanceResult | null>(null);
   const [score, setScore] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Load last saved session on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('analysis_sessions')
+      .select('appearance_result, appearance_score')
+      .eq('session_type', 'appearance')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data?.appearance_result) {
+          setResult(data.appearance_result as AppearanceResult);
+          setScore(data.appearance_score ?? 0);
+          setState('done');
+        } else {
+          setState('idle');
+        }
+      });
+  }, []);
 
   function handleCapture(base64: string, mediaType: 'image/jpeg' | 'image/png') {
     setCapturedBase64(base64);
@@ -52,6 +74,14 @@ export default function FaceScanPage() {
     setErrorMsg('');
   }
 
+  if (state === 'loading') {
+    return (
+      <div className="p-8 max-w-2xl mx-auto flex items-center justify-center py-24">
+        <Loader2 size={28} className="animate-spin text-violet-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="mb-8">
@@ -81,8 +111,8 @@ export default function FaceScanPage() {
           {state === 'analyzing' && (
             <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
               <Loader2 size={32} className="animate-spin text-violet-400" />
-              <p className="text-sm">Claude is analyzing your photo...</p>
-              <p className="text-xs text-slate-600">This takes about 10-15 seconds</p>
+              <p className="text-sm">Claude is analyzing your photo…</p>
+              <p className="text-xs text-slate-600">This takes about 10–15 seconds</p>
             </div>
           )}
 
