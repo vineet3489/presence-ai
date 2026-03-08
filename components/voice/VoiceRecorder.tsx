@@ -21,6 +21,9 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullTranscriptRef = useRef<string>('');
+  const displayedTranscriptRef = useRef<string>('');
+  const onTranscriptRef = useRef(onTranscript);
+  useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
 
   useEffect(() => {
     // Check browser support
@@ -56,7 +59,9 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
           interim = event.results[i][0].transcript;
         }
       }
-      setTranscript(final + interim);
+      const displayed = final + interim;
+      setTranscript(displayed);
+      displayedTranscriptRef.current = displayed;
     };
 
     recognition.onerror = (event: Event) => {
@@ -64,6 +69,19 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
       if (errEvent.error !== 'no-speech') {
         setError(`Microphone error: ${errEvent.error ?? 'unknown'}. Please try again.`);
         stopRecording();
+      }
+    };
+
+    // onend fires after all speech results are finalized — reliable place to submit
+    recognition.onend = () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      // Prefer fully-finalized text; fall back to displayed (interim) text
+      const text = (fullTranscriptRef.current.trim() || displayedTranscriptRef.current.trim());
+      setState('done');
+      if (text) {
+        setTranscript(text);
+        onTranscriptRef.current(text, duration);
       }
     };
 
@@ -78,14 +96,8 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
   }
 
   function stopRecording() {
+    // Just stop — recognition.onend handles the callback and state transition
     recognitionRef.current?.stop();
-    if (timerRef.current) clearInterval(timerRef.current);
-    const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const finalText = fullTranscriptRef.current.trim();
-    setState('done');
-    if (finalText) {
-      onTranscript(finalText, duration);
-    }
   }
 
   function reset() {
