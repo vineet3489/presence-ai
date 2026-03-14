@@ -13,7 +13,86 @@ export interface UserProfile {
   style_preference: 'classic' | 'smart-casual' | 'streetwear' | 'bold' | 'minimalist';
   goals: string[];
   onboarding_completed: boolean;
+  trial_started_at: string | null;
+  subscription_status: 'none' | 'trial' | 'active' | 'expired' | null;
+  subscription_ends_at: string | null;
+  presence_xp: number;
+  tip_streak: number;
+  last_tip_date: string | null;
   created_at: string;
+}
+
+export interface OutfitBuilderData {
+  venue: string;
+  vibe: 'casual' | 'smart-casual' | 'formal' | 'adventurous';
+  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  impression: string;
+}
+
+export interface OutfitOption {
+  name: string;
+  description: string;
+  colorPalette: string[];
+  whyItWorks: string;
+  accessories: string;
+}
+
+export interface OutfitBuilderResult {
+  outfits: OutfitOption[];
+  stylistNote: string;
+}
+
+export interface PreDateChecklistData {
+  where: string;
+  when: string;
+  about: string;
+  nervousAbout: string;
+}
+
+export interface PreDateChecklistResult {
+  whatToWear: string;
+  conversationHooks: string[];
+  breathingExercise: string;
+  confidenceAnchor: string;
+  lastMinuteTips: string[];
+}
+
+export interface RoleplayScenario {
+  id: string;
+  label: string;
+  description: string;
+  personaDescription: string;
+  setting: string;
+}
+
+export interface RoleplayMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface RoleplayTurn {
+  reply: string;
+  score: {
+    confidence: number;
+    warmth: number;
+    naturalness: number;
+  };
+  coaching: string;
+}
+
+export interface WeeklyReportData {
+  weekAvgAppearance: number | null;
+  weekAvgVoice: number | null;
+  weekAvgSocial: number | null;
+  prevAvgAppearance: number | null;
+  prevAvgVoice: number | null;
+  prevAvgSocial: number | null;
+  sessionCount: number;
+  xp: number;
+  streak: number;
+  coachSummary: string;
+  topImprovement: string;
+  focusArea: string;
 }
 
 export interface AppearanceData {

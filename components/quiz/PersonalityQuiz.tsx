@@ -133,6 +133,8 @@ export function PersonalityQuiz({ userId }: { userId: string }) {
         style_preference: stylePreference,
         goals,
         onboarding_completed: true,
+        trial_started_at: new Date().toISOString(),
+        subscription_status: 'trial',
       });
       if (error) throw error;
       router.push('/dashboard');

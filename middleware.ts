@@ -32,7 +32,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/voice-check') ||
     pathname.startsWith('/date-prep') ||
     pathname.startsWith('/progress') ||
-    pathname.startsWith('/onboarding');
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/roleplay') ||
+    pathname.startsWith('/report') ||
+    pathname.startsWith('/upgrade');
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url));

@@ -3,16 +3,18 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart } from 'lucide-react';
+import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart, Users, BarChart2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/face-scan', label: 'Face Scan', icon: Camera },
   { href: '/voice-check', label: 'Voice Check', icon: Mic },
+  { href: '/roleplay', label: 'Roleplay', icon: Users },
   { href: '/date-prep', label: 'Date Prep', icon: Heart },
   { href: '/chat-coach', label: 'Chat Coach', icon: MessageCircleHeart },
   { href: '/progress', label: 'Progress', icon: TrendingUp },
+  { href: '/report', label: 'Weekly Report', icon: BarChart2 },
 ];
 
 export function DashboardSidebar() {
