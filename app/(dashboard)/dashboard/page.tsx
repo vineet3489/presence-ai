@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { compositeScore } from '@/lib/scoring/presenceScore';
 import { CompositeScoreRing, PresenceScoreRing } from '@/components/dashboard/PresenceScoreRing';
 import { DailyTips } from '@/components/dashboard/DailyTips';
+import { WelcomeVoice } from '@/components/dashboard/WelcomeVoice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -132,6 +133,13 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <WelcomeVoice
+        userEmail={user.email ?? ''}
+        presenceScore={composite}
+        sessionCount={sessions?.length ?? 0}
+        streak={streak}
+      />
     </div>
   );
 }

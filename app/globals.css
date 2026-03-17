@@ -46,3 +46,58 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* Auth page floating blob animations */
+@keyframes blob-1 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(40px, -50px) scale(1.12); }
+  66% { transform: translate(-30px, 25px) scale(0.9); }
+}
+@keyframes blob-2 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(-50px, 30px) scale(0.94); }
+  66% { transform: translate(35px, -40px) scale(1.08); }
+}
+@keyframes blob-3 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(20px, 30px) scale(1.06); }
+}
+.animate-blob-1 { animation: blob-1 18s ease-in-out infinite; }
+.animate-blob-2 { animation: blob-2 22s ease-in-out infinite; }
+.animate-blob-3 { animation: blob-3 14s ease-in-out infinite; }
+
+/* Fade in up */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fade-in-up-delay {
+  animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+/* Typewriter cursor blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: currentColor;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+/* Speaking orb pulse */
+@keyframes orb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6), 0 0 0 0 rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0.15), 0 0 0 24px rgba(139, 92, 246, 0.05); }
+}
+.orb-speaking {
+  animation: orb-pulse 1.8s ease-in-out infinite;
+}
