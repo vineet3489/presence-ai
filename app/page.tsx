@@ -12,7 +12,7 @@ export default function LandingPage() {
           <Link href="/login">
             <Button variant="ghost" size="sm">Sign in</Button>
           </Link>
-          <Link href="/signup">
+          <Link href="/login">
             <Button size="sm">Get Started Free</Button>
           </Link>
         </div>
@@ -34,7 +34,7 @@ export default function LandingPage() {
           on how to look, speak, and carry yourself with genuine confidence.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/signup">
+          <Link href="/login">
             <Button size="lg" className="gap-2">
               Start for free <ArrowRight size={18} />
             </Button>
@@ -100,7 +100,7 @@ export default function LandingPage() {
               Every session updates your Presence Score — a composite of appearance, voice, and social intelligence.
               Watch it climb as you apply the coaching.
             </p>
-            <Link href="/signup">
+            <Link href="/login">
               <Button>Start tracking free <ArrowRight size={16} className="ml-1" /></Button>
             </Link>
           </div>
@@ -130,13 +130,17 @@ export default function LandingPage() {
       <section className="border-t border-slate-800 py-16 px-6 text-center">
         <h2 className="text-3xl font-bold text-white mb-4">Ready to level up your presence?</h2>
         <p className="text-slate-400 mb-8">Free to start. No credit card required.</p>
-        <Link href="/signup">
+        <Link href="/login">
           <Button size="lg">Get started free <ArrowRight size={18} className="ml-1" /></Button>
         </Link>
       </section>
 
       <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-600">
-        © {new Date().getFullYear()} PresenceAI — Built with Claude AI
+        <p>© {new Date().getFullYear()} PresenceAI</p>
+        <div className="flex gap-4 justify-center mt-2">
+          <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms of Service</Link>
+        </div>
       </footer>
     </div>
   );
