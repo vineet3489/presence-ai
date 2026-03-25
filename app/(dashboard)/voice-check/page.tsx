@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Button } from '@/components/ui/button';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { VoiceResult } from '@/types';
 
@@ -12,34 +12,47 @@ type State = 'loading' | 'idle' | 'analyzing' | 'done' | 'error';
 
 const PROMPT = "Tell me about yourself — your work, what you're passionate about, and what you're looking forward to right now.";
 
+interface SessionSnap {
+  id: string;
+  voice_score: number | null;
+  voice_result: VoiceResult | null;
+  created_at: string;
+}
+
 export default function VoiceCheckPage() {
   const [state, setState] = useState<State>('loading');
   const [result, setResult] = useState<VoiceResult | null>(null);
   const [score, setScore] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [history, setHistory] = useState<SessionSnap[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Load last saved session on mount
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from('analysis_sessions')
-      .select('voice_result, voice_score')
+      .select('id, voice_result, voice_score, created_at')
       .eq('session_type', 'voice')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data, error }) => {
-        if (!error && data?.voice_result) {
-          setResult(data.voice_result as VoiceResult);
-          setScore(data.voice_score ?? 0);
-          setState('done');
+      .limit(10)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const [latest, ...rest] = data as SessionSnap[];
+          if (latest?.voice_result) {
+            setResult(latest.voice_result);
+            setScore(latest.voice_score ?? 0);
+            setState('done');
+          } else {
+            setState('idle');
+          }
+          setHistory(rest.filter(s => s.voice_result));
         } else {
           setState('idle');
         }
       });
   }, []);
 
-  // Auto-analyze as soon as transcript arrives — no manual button needed
   async function handleTranscript(text: string, dur: number) {
     if (!text) return;
     setState('analyzing');
@@ -68,19 +81,22 @@ export default function VoiceCheckPage() {
     setErrorMsg('');
   }
 
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
   if (state === 'loading') {
     return (
-      <div className="p-8 max-w-2xl mx-auto flex items-center justify-center py-24">
+      <div className="p-6 max-w-2xl mx-auto flex items-center justify-center py-24">
         <Loader2 size={28} className="animate-spin text-sky-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-white">Voice Check</h1>
-        <p className="text-slate-400 mt-1">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-white">Voice Check</h1>
+        <p className="text-slate-400 mt-1 text-sm md:text-base">
           Record yourself speaking — get coaching on clarity, tone, and grammar
         </p>
       </div>
@@ -110,6 +126,55 @@ export default function VoiceCheckPage() {
               <Button variant="outline" onClick={reset} className="w-full gap-2">
                 <RotateCcw size={16} /> Try Again
               </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Past sessions */}
+      {history.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors mb-4"
+          >
+            <Clock size={15} />
+            Past recordings ({history.length})
+            {showHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {showHistory && (
+            <div className="space-y-3">
+              {history.map((s) => (
+                <div key={s.id} className="rounded-xl border border-slate-800 bg-slate-900/50">
+                  <button
+                    onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-sky-900/40 border border-sky-700/40 flex items-center justify-center">
+                        <span className="text-xs font-bold text-sky-300">{s.voice_score ?? '—'}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-white font-medium">Voice session</p>
+                        <p className="text-xs text-slate-500">{formatDate(s.created_at)}</p>
+                      </div>
+                    </div>
+                    {expandedId === s.id ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
+                  </button>
+
+                  {expandedId === s.id && s.voice_result && (
+                    <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
+                      <p className="text-xs text-slate-400 leading-relaxed">{s.voice_result.overallCoaching}</p>
+                      <div className="flex gap-4 text-xs">
+                        <span className="text-slate-500">Pace: <span className="text-white">{s.voice_result.paceWpm} wpm</span></span>
+                        <span className="text-slate-500">Fillers: <span className="text-white">{s.voice_result.fillerWordCount}</span></span>
+                        <span className="text-slate-500">Clarity: <span className="text-white">{s.voice_result.clarityScore}/100</span></span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

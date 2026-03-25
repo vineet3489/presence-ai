@@ -35,7 +35,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/roleplay') ||
     pathname.startsWith('/report') ||
-    pathname.startsWith('/upgrade');
+    pathname.startsWith('/upgrade') ||
+    pathname.startsWith('/style-profile');
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url));

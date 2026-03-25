@@ -22,17 +22,18 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullTranscriptRef = useRef<string>('');
   const displayedTranscriptRef = useRef<string>('');
+  const isAbortedRef = useRef<boolean>(false);
   const onTranscriptRef = useRef(onTranscript);
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
 
   useEffect(() => {
-    // Check browser support
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) setState('unsupported');
   }, []);
 
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    isAbortedRef.current = true;
     recognitionRef.current?.stop();
   }, []);
 
@@ -40,7 +41,9 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
     setError('');
     setTranscript('');
     fullTranscriptRef.current = '';
+    displayedTranscriptRef.current = '';
     setElapsed(0);
+    isAbortedRef.current = false;
 
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -66,17 +69,17 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
 
     recognition.onerror = (event: Event) => {
       const errEvent = event as Event & { error?: string };
-      if (errEvent.error !== 'no-speech') {
+      if (errEvent.error !== 'no-speech' && errEvent.error !== 'aborted') {
         setError(`Microphone error: ${errEvent.error ?? 'unknown'}. Please try again.`);
         stopRecording();
       }
     };
 
-    // onend fires after all speech results are finalized — reliable place to submit
     recognition.onend = () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      // Don't submit if user aborted (reset/retake)
+      if (isAbortedRef.current) return;
       const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      // Prefer fully-finalized text; fall back to displayed (interim) text
       const text = (fullTranscriptRef.current.trim() || displayedTranscriptRef.current.trim());
       setState('done');
       if (text) {
@@ -85,7 +88,12 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
       }
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      setError('Could not start microphone. Please check permissions and try again.');
+      return;
+    }
     recognitionRef.current = recognition;
     startTimeRef.current = Date.now();
     setState('recording');
@@ -96,16 +104,19 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
   }
 
   function stopRecording() {
-    // Just stop — recognition.onend handles the callback and state transition
     recognitionRef.current?.stop();
   }
 
   function reset() {
+    isAbortedRef.current = true;
     recognitionRef.current?.stop();
+    recognitionRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     setTranscript('');
     fullTranscriptRef.current = '';
+    displayedTranscriptRef.current = '';
     setElapsed(0);
+    setError('');
     setState('idle');
   }
 
@@ -116,7 +127,7 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
       <div className="rounded-2xl border border-amber-800/40 bg-amber-900/10 p-6 text-center">
         <p className="text-amber-400 text-sm font-medium">Speech recognition not supported</p>
         <p className="text-slate-400 text-xs mt-1">
-          Please use Chrome or Edge. You can also type your transcript directly below.
+          Please use Chrome or Edge on desktop. On iPhone, use Safari.
         </p>
       </div>
     );
@@ -128,7 +139,7 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
         <div className="rounded-2xl border border-emerald-800/30 bg-emerald-900/10 p-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Transcript captured</p>
-            <span className="text-xs text-slate-500">{elapsed}s recorded</span>
+            <span className="text-xs text-slate-500">{formatTime(elapsed)} recorded</span>
           </div>
           <p className="text-slate-300 text-sm leading-relaxed">{transcript}</p>
         </div>
@@ -154,7 +165,7 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
             <p className="text-4xl font-mono font-bold text-white tabular-nums">
               {formatTime(elapsed)}
             </p>
-            <p className="text-xs text-slate-500 mt-1">Recording...</p>
+            <p className="text-xs text-slate-500 mt-1">Recording… speak naturally</p>
           </div>
         )}
 
@@ -175,7 +186,7 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
         )}
 
         <p className="text-sm text-slate-400">
-          {state === 'recording' ? 'Tap to stop' : 'Tap to start recording'}
+          {state === 'recording' ? 'Tap to stop when done' : 'Tap to start recording'}
         </p>
       </div>
 
@@ -185,7 +196,14 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
         </div>
       )}
 
-      {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+      {error && (
+        <div className="space-y-3">
+          <p className="text-sm text-red-400 text-center">{error}</p>
+          <Button variant="outline" onClick={reset} size="sm" className="w-full">
+            Try Again
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,11 +4,18 @@ import { useState, useEffect } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { AppearanceResult } from '@/types';
 
 type State = 'loading' | 'idle' | 'captured' | 'analyzing' | 'done' | 'error';
+
+interface SessionSnap {
+  id: string;
+  appearance_score: number | null;
+  appearance_result: AppearanceResult | null;
+  created_at: string;
+}
 
 export default function FaceScanPage() {
   const [state, setState] = useState<State>('loading');
@@ -17,22 +24,29 @@ export default function FaceScanPage() {
   const [result, setResult] = useState<AppearanceResult | null>(null);
   const [score, setScore] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [history, setHistory] = useState<SessionSnap[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Load last saved session on mount
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from('analysis_sessions')
-      .select('appearance_result, appearance_score')
+      .select('id, appearance_result, appearance_score, created_at')
       .eq('session_type', 'appearance')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data, error }) => {
-        if (!error && data?.appearance_result) {
-          setResult(data.appearance_result as AppearanceResult);
-          setScore(data.appearance_score ?? 0);
-          setState('done');
+      .limit(10)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const [latest, ...rest] = data as SessionSnap[];
+          if (latest?.appearance_result) {
+            setResult(latest.appearance_result);
+            setScore(latest.appearance_score ?? 0);
+            setState('done');
+          } else {
+            setState('idle');
+          }
+          setHistory(rest.filter(s => s.appearance_result));
         } else {
           setState('idle');
         }
@@ -74,20 +88,23 @@ export default function FaceScanPage() {
     setErrorMsg('');
   }
 
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
   if (state === 'loading') {
     return (
-      <div className="p-8 max-w-2xl mx-auto flex items-center justify-center py-24">
+      <div className="p-6 max-w-2xl mx-auto flex items-center justify-center py-24">
         <Loader2 size={28} className="animate-spin text-violet-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-white">Face Scan</h1>
-        <p className="text-slate-400 mt-1">
-          Take or upload a photo — get personalized style & appearance coaching
+    <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-white">Face Scan</h1>
+        <p className="text-slate-400 mt-1 text-sm md:text-base">
+          Upload a photo — get personalized style & appearance coaching
         </p>
       </div>
 
@@ -122,6 +139,62 @@ export default function FaceScanPage() {
               <Button variant="outline" onClick={reset} className="w-full gap-2">
                 <RotateCcw size={16} /> Try Again
               </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Past sessions */}
+      {history.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors mb-4"
+          >
+            <Clock size={15} />
+            Past scans ({history.length})
+            {showHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {showHistory && (
+            <div className="space-y-3">
+              {history.map((s) => (
+                <div key={s.id} className="rounded-xl border border-slate-800 bg-slate-900/50">
+                  <button
+                    onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-violet-900/40 border border-violet-700/40 flex items-center justify-center">
+                        <span className="text-xs font-bold text-violet-300">{s.appearance_score ?? '—'}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-white font-medium">Appearance scan</p>
+                        <p className="text-xs text-slate-500">{formatDate(s.created_at)}</p>
+                      </div>
+                    </div>
+                    {expandedId === s.id ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
+                  </button>
+
+                  {expandedId === s.id && s.appearance_result && (
+                    <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-2">
+                      <p className="text-xs text-slate-400 leading-relaxed">{s.appearance_result.overallCoaching}</p>
+                      {s.appearance_result.hairstyleRecommendations?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium mb-1">Hairstyle recommendations:</p>
+                          <ul className="space-y-0.5">
+                            {s.appearance_result.hairstyleRecommendations.slice(0, 2).map((r, i) => (
+                              <li key={i} className="text-xs text-slate-400 flex gap-1.5">
+                                <span className="text-violet-400">→</span> {r}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

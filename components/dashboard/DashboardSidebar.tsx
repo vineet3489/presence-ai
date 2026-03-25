@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart, Users, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart, Users, BarChart2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/face-scan', label: 'Face Scan', icon: Camera },
   { href: '/voice-check', label: 'Voice Check', icon: Mic },
+  { href: '/style-profile', label: 'Style Profile', icon: Sparkles },
   { href: '/roleplay', label: 'Roleplay', icon: Users },
   { href: '/date-prep', label: 'Date Prep', icon: Heart },
   { href: '/chat-coach', label: 'Chat Coach', icon: MessageCircleHeart },
@@ -29,7 +30,7 @@ export function DashboardSidebar() {
   }
 
   return (
-    <aside className="w-60 shrink-0 border-r border-slate-800 min-h-screen flex flex-col bg-slate-950">
+    <aside className="w-60 shrink-0 border-r border-slate-800 min-h-screen hidden md:flex flex-col bg-slate-950">
       <div className="px-6 py-5 border-b border-slate-800">
         <span className="text-lg font-black gradient-text">PresenceAI</span>
       </div>

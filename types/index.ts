@@ -12,6 +12,10 @@ export interface UserProfile {
   };
   style_preference: 'classic' | 'smart-casual' | 'streetwear' | 'bold' | 'minimalist';
   goals: string[];
+  age?: number | null;
+  city?: string | null;
+  occupation?: string | null;
+  education?: string | null;
   onboarding_completed: boolean;
   trial_started_at: string | null;
   subscription_status: 'none' | 'trial' | 'active' | 'expired' | null;
