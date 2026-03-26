@@ -51,6 +51,7 @@ export default function StyleProfilePage() {
   // Image generation state
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
+  const [noScan, setNoScan] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<{ base64: string; mimeType: string } | null>(null);
 
   async function fetchProfile(force = false) {
@@ -74,6 +75,7 @@ export default function StyleProfilePage() {
     if (!profile) return;
     setGenLoading(true);
     setGenError('');
+    setNoScan(false);
     try {
       const res = await fetch('/api/style-profile/generate-image', {
         method: 'POST',
@@ -81,7 +83,10 @@ export default function StyleProfilePage() {
         body: JSON.stringify({ styleProfile: profile }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Generation failed');
+      if (!res.ok) {
+        if (data.error === 'no_scan') { setNoScan(true); return; }
+        throw new Error(data.message || 'Generation failed');
+      }
       setGeneratedImage({ base64: data.imageBase64, mimeType: data.mimeType });
     } catch (err) {
       setGenError(err instanceof Error ? err.message : 'Image generation failed');
@@ -158,24 +163,38 @@ export default function StyleProfilePage() {
 
           {!generatedImage ? (
             <>
-              {genError && <p className="text-xs text-red-400 mb-3">{genError}</p>}
-              <Button
-                onClick={generateLook}
-                disabled={genLoading}
-                className="w-full bg-violet-600 hover:bg-violet-500 gap-2"
-              >
-                {genLoading ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    Generating your look… (~15s)
-                  </>
-                ) : (
-                  <>
-                    <Wand2 size={15} />
-                    Generate My Ideal Look
-                  </>
-                )}
-              </Button>
+              {noScan ? (
+                <div className="rounded-xl border border-amber-800/40 bg-amber-900/15 p-4 text-center">
+                  <p className="text-sm text-amber-300 font-medium mb-1">Face Scan required</p>
+                  <p className="text-xs text-slate-400 mb-3">
+                    We need your face scan data to generate a look that's actually based on you — not a random person.
+                  </p>
+                  <a href="/face-scan" className="inline-flex items-center gap-1.5 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded-lg px-4 py-2 transition-colors">
+                    Go do a Face Scan →
+                  </a>
+                </div>
+              ) : (
+                <>
+                  {genError && <p className="text-xs text-red-400 mb-3">{genError}</p>}
+                  <Button
+                    onClick={generateLook}
+                    disabled={genLoading}
+                    className="w-full bg-violet-600 hover:bg-violet-500 gap-2"
+                  >
+                    {genLoading ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        Generating your look… (~15s)
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 size={15} />
+                        Generate My Ideal Look
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <div className="space-y-3">
@@ -293,7 +312,7 @@ export default function StyleProfilePage() {
       )}
 
       <p className="text-xs text-slate-600 text-center pb-4">
-        Profile refreshes weekly · Do a Face Scan first for best image results
+        Profile refreshes weekly · Image generation requires a Face Scan
       </p>
     </div>
   );

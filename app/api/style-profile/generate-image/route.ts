@@ -34,6 +34,14 @@ export async function POST(req: Request) {
 
   const faceShape = (lastScan?.appearance_result as any)?.faceShape || null;
   const skinTone = (lastScan?.appearance_result as any)?.skinTone || null;
+
+  if (!faceShape || !skinTone) {
+    return NextResponse.json(
+      { error: 'no_scan', message: 'Complete a Face Scan first so we can generate a look that's actually based on you.' },
+      { status: 400 }
+    );
+  }
+
   const age = profile?.age || null;
 
   const outfit = styleProfile.signatureOutfits?.[0]?.outfit || '';
