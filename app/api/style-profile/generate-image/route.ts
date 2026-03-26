@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Style profile required' }, { status: 400 });
   }
 
-  // Fetch user profile for age + face scan data for face shape/skin tone
   const [{ data: profile }, { data: lastScan }] = await Promise.all([
     supabase.from('user_profiles').select('age, style_preference').eq('user_id', user.id).single(),
     supabase
@@ -37,61 +35,59 @@ export async function POST(req: Request) {
 
   if (!faceShape || !skinTone) {
     return NextResponse.json(
-      { error: 'no_scan', message: 'Complete a Face Scan first so we can generate a look that's actually based on you.' },
+      { error: 'no_scan', message: 'Complete a Face Scan first so we can generate a look that\'s actually based on you.' },
       { status: 400 }
     );
   }
 
   const age = profile?.age || null;
-
   const outfit = styleProfile.signatureOutfits?.[0]?.outfit || '';
   const colors = [...(styleProfile.colorPalette.primary || []), ...(styleProfile.colorPalette.accent || [])].slice(0, 4).join(', ');
-
   const prompt = buildImagePrompt({ archetype: styleProfile.archetype, outfit, colors, faceShape, skinTone, age });
 
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Google AI not configured' }, { status: 500 });
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp-image-generation' });
-
-  try {
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } as any,
-    });
-
-    const parts = result.response.candidates?.[0]?.content?.parts ?? [];
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        return NextResponse.json({
-          imageBase64: part.inlineData.data,
-          mimeType: part.inlineData.mimeType || 'image/png',
-          prompt,
-        });
-      }
+  // Use Imagen 3 via Google AI Studio REST API (predict endpoint)
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1, aspectRatio: '3:4' },
+      }),
     }
+  );
 
-    return NextResponse.json({ error: 'No image generated' }, { status: 500 });
-  } catch (err: unknown) {
-    console.error('Image generation error:', err);
-    const message = err instanceof Error ? err.message : 'Image generation failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('Imagen API error:', errText);
+    return NextResponse.json({ error: 'Image generation failed', detail: errText }, { status: 500 });
   }
+
+  const data = await res.json();
+  const prediction = data.predictions?.[0];
+
+  if (!prediction?.bytesBase64Encoded) {
+    return NextResponse.json({ error: 'No image returned from Imagen' }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    imageBase64: prediction.bytesBase64Encoded,
+    mimeType: prediction.mimeType || 'image/png',
+  });
 }
 
 function buildImagePrompt(data: {
   archetype: string;
   outfit: string;
   colors: string;
-  faceShape: string | null;
-  skinTone: string | null;
+  faceShape: string;
+  skinTone: string;
   age: number | null;
 }): string {
   const ageDesc = data.age ? `${data.age}-year-old ` : '';
-  const faceDesc = data.faceShape ? `, ${data.faceShape} face shape` : '';
-  const skinDesc = data.skinTone ? `, ${data.skinTone} skin tone` : '';
-
-  return `Fashion editorial photograph of a ${ageDesc}person${faceDesc}${skinDesc}, embodying the "${data.archetype}" aesthetic. Wearing: ${data.outfit}. Color palette: ${data.colors}. Studio lighting, sharp focus, clean neutral background, high-quality fashion photography, confident relaxed posture, looking slightly away from camera. Photorealistic, not illustrated.`;
+  return `Fashion editorial photograph of a ${ageDesc}South Asian person with ${data.faceShape} face shape and ${data.skinTone} skin tone, embodying the "${data.archetype}" aesthetic. Wearing: ${data.outfit}. Color palette: ${data.colors}. Studio lighting, sharp focus, clean neutral background, confident relaxed posture, high-quality fashion photography, photorealistic.`;
 }
