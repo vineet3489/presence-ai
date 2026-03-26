@@ -48,9 +48,9 @@ export async function POST(req: Request) {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Google AI not configured' }, { status: 500 });
 
-  // Gemini 2.0 Flash image generation via AI Studio REST API
+  // Gemini 2.5 Flash image generation via AI Studio REST API
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
