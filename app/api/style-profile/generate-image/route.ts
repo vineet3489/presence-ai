@@ -63,15 +63,18 @@ export async function POST(req: Request) {
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error('Imagen API error:', errText);
-    return NextResponse.json({ error: 'Image generation failed', detail: errText }, { status: 500 });
+    console.error('Imagen API error:', res.status, errText);
+    let detail = errText;
+    try { detail = JSON.parse(errText)?.error?.message || errText; } catch {}
+    return NextResponse.json({ error: detail }, { status: res.status });
   }
 
   const data = await res.json();
   const prediction = data.predictions?.[0];
 
   if (!prediction?.bytesBase64Encoded) {
-    return NextResponse.json({ error: 'No image returned from Imagen' }, { status: 500 });
+    console.error('Imagen empty response:', JSON.stringify(data));
+    return NextResponse.json({ error: 'No image returned. Full response: ' + JSON.stringify(data) }, { status: 500 });
   }
 
   return NextResponse.json({

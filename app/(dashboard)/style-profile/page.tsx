@@ -85,7 +85,7 @@ export default function StyleProfilePage() {
       const data = await res.json();
       if (!res.ok) {
         if (data.error === 'no_scan') { setNoScan(true); return; }
-        throw new Error(data.message || 'Generation failed');
+        throw new Error(data.error || data.message || 'Generation failed');
       }
       setGeneratedImage({ base64: data.imageBase64, mimeType: data.mimeType });
     } catch (err) {
