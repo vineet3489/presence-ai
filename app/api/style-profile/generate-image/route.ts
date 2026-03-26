@@ -48,39 +48,43 @@ export async function POST(req: Request) {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Google AI not configured' }, { status: 500 });
 
-  // Use Imagen 3 via Google AI Studio REST API (predict endpoint)
+  // Gemini 2.0 Flash image generation via AI Studio REST API
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1, aspectRatio: '3:4' },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
       }),
     }
   );
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error('Imagen API error:', res.status, errText);
+    console.error('Gemini image API error:', res.status, errText);
     let detail = errText;
     try { detail = JSON.parse(errText)?.error?.message || errText; } catch {}
     return NextResponse.json({ error: detail }, { status: res.status });
   }
 
   const data = await res.json();
-  const prediction = data.predictions?.[0];
 
-  if (!prediction?.bytesBase64Encoded) {
-    console.error('Imagen empty response:', JSON.stringify(data));
-    return NextResponse.json({ error: 'No image returned. Full response: ' + JSON.stringify(data) }, { status: 500 });
+  // Find the image part in the response
+  for (const candidate of data.candidates ?? []) {
+    for (const part of candidate.content?.parts ?? []) {
+      if (part.inlineData?.data) {
+        return NextResponse.json({
+          imageBase64: part.inlineData.data,
+          mimeType: part.inlineData.mimeType || 'image/png',
+        });
+      }
+    }
   }
 
-  return NextResponse.json({
-    imageBase64: prediction.bytesBase64Encoded,
-    mimeType: prediction.mimeType || 'image/png',
-  });
+  console.error('No image in Gemini response:', JSON.stringify(data));
+  return NextResponse.json({ error: 'No image returned. ' + JSON.stringify(data) }, { status: 500 });
 }
 
 function buildImagePrompt(data: {
