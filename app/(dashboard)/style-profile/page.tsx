@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Eye, XCircle } from 'lucide-react';
+import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Eye, XCircle, Wand2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface StyleProfile {
@@ -24,28 +24,11 @@ interface StyleProfile {
 }
 
 const COLOR_BG: Record<string, string> = {
-  black: '#111',
-  white: '#f5f5f5',
-  navy: '#1a2a4a',
-  grey: '#6b7280',
-  gray: '#6b7280',
-  slate: '#475569',
-  brown: '#92400e',
-  beige: '#d4b896',
-  cream: '#f5f0e8',
-  burgundy: '#7f1d1d',
-  olive: '#4a5228',
-  terracotta: '#c2522a',
-  camel: '#c19a6b',
-  cognac: '#9d4b2a',
-  charcoal: '#374151',
-  bone: '#e8e0d4',
-  ivory: '#f5f0e0',
-  cobalt: '#1a3a8f',
-  rust: '#b45309',
-  teal: '#0d9488',
-  forest: '#14532d',
-  sand: '#c4a97d',
+  black: '#111', white: '#f5f5f5', navy: '#1a2a4a', grey: '#6b7280', gray: '#6b7280',
+  slate: '#475569', brown: '#92400e', beige: '#d4b896', cream: '#f5f0e8', burgundy: '#7f1d1d',
+  olive: '#4a5228', terracotta: '#c2522a', camel: '#c19a6b', cognac: '#9d4b2a',
+  charcoal: '#374151', bone: '#e8e0d4', ivory: '#f5f0e0', cobalt: '#1a3a8f',
+  rust: '#b45309', teal: '#0d9488', forest: '#14532d', sand: '#c4a97d',
 };
 
 function ColorSwatch({ color }: { color: string }) {
@@ -65,9 +48,15 @@ export default function StyleProfilePage() {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Image generation state
+  const [genLoading, setGenLoading] = useState(false);
+  const [genError, setGenError] = useState('');
+  const [generatedImage, setGeneratedImage] = useState<{ base64: string; mimeType: string } | null>(null);
+
   async function fetchProfile(force = false) {
     force ? setRefreshing(true) : setLoading(true);
     setError('');
+    if (force) setGeneratedImage(null); // reset image on refresh
     try {
       const res = await fetch(`/api/style-profile${force ? '?refresh=1' : ''}`);
       const data = await res.json();
@@ -81,6 +70,34 @@ export default function StyleProfilePage() {
     }
   }
 
+  async function generateLook() {
+    if (!profile) return;
+    setGenLoading(true);
+    setGenError('');
+    try {
+      const res = await fetch('/api/style-profile/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ styleProfile: profile }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
+      setGeneratedImage({ base64: data.imageBase64, mimeType: data.mimeType });
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : 'Image generation failed');
+    } finally {
+      setGenLoading(false);
+    }
+  }
+
+  function downloadImage() {
+    if (!generatedImage) return;
+    const link = document.createElement('a');
+    link.href = `data:${generatedImage.mimeType};base64,${generatedImage.base64}`;
+    link.download = 'my-ideal-look.png';
+    link.click();
+  }
+
   useEffect(() => { fetchProfile(); }, []);
 
   if (loading) {
@@ -88,7 +105,7 @@ export default function StyleProfilePage() {
       <div className="p-6 max-w-2xl mx-auto flex flex-col items-center justify-center py-24 gap-4">
         <Loader2 size={32} className="animate-spin text-violet-400" />
         <p className="text-slate-400 text-sm">Building your style profile…</p>
-        <p className="text-slate-600 text-xs">This takes about 10 seconds</p>
+        <p className="text-slate-600 text-xs">Takes about 10 seconds</p>
       </div>
     );
   }
@@ -115,13 +132,7 @@ export default function StyleProfilePage() {
           </h1>
           <p className="text-slate-400 mt-1 text-sm">Your personal archetype & style blueprint</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchProfile(true)}
-          disabled={refreshing}
-          className="shrink-0"
-        >
+        <Button variant="outline" size="sm" onClick={() => fetchProfile(true)} disabled={refreshing} className="shrink-0">
           {refreshing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
         </Button>
       </div>
@@ -131,6 +142,66 @@ export default function StyleProfilePage() {
         <div className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-2">Your Archetype</div>
         <h2 className="text-2xl font-black text-white mb-3">{profile.archetype}</h2>
         <p className="text-slate-300 text-sm leading-relaxed">{profile.archetypeDescription}</p>
+      </div>
+
+      {/* AI Look Generator */}
+      <div className="rounded-2xl border border-violet-800/50 bg-slate-900/60 overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Wand2 size={16} className="text-violet-400" />
+            <h3 className="text-sm font-semibold text-white">See Your Ideal Look</h3>
+            <span className="text-xs bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI Generated</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Generate a visual of how you'd look in your ideal archetype outfit — based on your face scan + style profile.
+          </p>
+
+          {!generatedImage ? (
+            <>
+              {genError && <p className="text-xs text-red-400 mb-3">{genError}</p>}
+              <Button
+                onClick={generateLook}
+                disabled={genLoading}
+                className="w-full bg-violet-600 hover:bg-violet-500 gap-2"
+              >
+                {genLoading ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Generating your look… (~15s)
+                  </>
+                ) : (
+                  <>
+                    <Wand2 size={15} />
+                    Generate My Ideal Look
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-700">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:${generatedImage.mimeType};base64,${generatedImage.base64}`}
+                  alt="Your ideal look"
+                  className="w-full object-cover"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" size="sm" onClick={downloadImage} className="gap-2 flex-1">
+                  <Download size={14} /> Save Image
+                </Button>
+                <Button variant="outline" size="sm" onClick={generateLook} disabled={genLoading} className="flex-1 gap-2">
+                  {genLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                  Regenerate
+                </Button>
+              </div>
+              <p className="text-xs text-slate-600 text-center">
+                AI-generated style inspiration — not your exact likeness
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Color palette */}
@@ -222,7 +293,7 @@ export default function StyleProfilePage() {
       )}
 
       <p className="text-xs text-slate-600 text-center pb-4">
-        Profile refreshes weekly · Updates when you update your profile
+        Profile refreshes weekly · Do a Face Scan first for best image results
       </p>
     </div>
   );
