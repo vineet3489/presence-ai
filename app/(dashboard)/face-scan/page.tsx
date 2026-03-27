@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
-import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { AppearanceResult } from '@/types';
 
@@ -17,6 +17,14 @@ interface SessionSnap {
   created_at: string;
 }
 
+const ANALYSIS_STAGES = [
+  { pct: 18, label: 'Reading your features…', delay: 500 },
+  { pct: 38, label: 'Mapping your face shape…', delay: 2200 },
+  { pct: 57, label: 'Identifying your style DNA…', delay: 4500 },
+  { pct: 74, label: 'Building your coaching…', delay: 7000 },
+  { pct: 88, label: 'Almost done…', delay: 10000 },
+];
+
 export default function FaceScanPage() {
   const [state, setState] = useState<State>('loading');
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
@@ -27,6 +35,9 @@ export default function FaceScanPage() {
   const [history, setHistory] = useState<SessionSnap[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [analysisPct, setAnalysisPct] = useState(0);
+  const [analysisLabel, setAnalysisLabel] = useState('Starting analysis…');
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -58,6 +69,20 @@ export default function FaceScanPage() {
     setCapturedMediaType(mediaType);
     setState('captured');
   }
+
+  useEffect(() => {
+    if (state !== 'analyzing') {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      setAnalysisPct(0);
+      setAnalysisLabel('Starting analysis…');
+      return;
+    }
+    timersRef.current = ANALYSIS_STAGES.map(({ pct, label, delay }) =>
+      setTimeout(() => { setAnalysisPct(pct); setAnalysisLabel(label); }, delay)
+    );
+    return () => { timersRef.current.forEach(clearTimeout); };
+  }, [state]);
 
   async function handleAnalyze() {
     if (!capturedBase64) return;
@@ -126,10 +151,26 @@ export default function FaceScanPage() {
           )}
 
           {state === 'analyzing' && (
-            <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
-              <Loader2 size={32} className="animate-spin text-violet-400" />
-              <p className="text-sm">Claude is analyzing your photo…</p>
-              <p className="text-xs text-slate-600">This takes about 10–15 seconds</p>
+            <div className="flex flex-col items-center gap-4 py-10">
+              <div className="relative w-24 h-24">
+                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="#1e1b4b" strokeWidth="6" />
+                  <circle
+                    cx="48" cy="48" r="40" fill="none" stroke="#7c3aed" strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - analysisPct / 100)}`}
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-black text-white">{analysisPct}%</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-white">Presence AI is on it</p>
+                <p className="text-xs text-slate-500 mt-1">{analysisLabel}</p>
+              </div>
             </div>
           )}
 

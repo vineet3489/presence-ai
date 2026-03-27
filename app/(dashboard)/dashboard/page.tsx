@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { compositeScore } from '@/lib/scoring/presenceScore';
 import { CompositeScoreRing, PresenceScoreRing } from '@/components/dashboard/PresenceScoreRing';
 import { DailyTips } from '@/components/dashboard/DailyTips';
@@ -8,7 +9,7 @@ import { WelcomeVoice } from '@/components/dashboard/WelcomeVoice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Mic, Heart, ArrowRight, MessageCircleHeart } from 'lucide-react';
+import { Camera, Mic, Heart, ArrowRight, MessageCircleHeart, Sparkles, Wand2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import type { AnalysisSession } from '@/types';
 
@@ -41,17 +42,27 @@ export default async function DashboardPage() {
   const xp: number = profile?.presence_xp ?? 0;
   const streak: number = profile?.tip_streak ?? 0;
 
+  // Try to get last generated look
+  let lastLookUrl: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data: signedData, error } = await admin.storage
+      .from('face-scans')
+      .createSignedUrl(`${user.id}/last-look.jpg`, 3600);
+    if (!error && signedData?.signedUrl) lastLookUrl = signedData.signedUrl;
+  } catch {}
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8 flex items-start justify-between">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="mb-6 md:mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white">Your Dashboard</h1>
-          <p className="text-slate-400 mt-1">Welcome back — here&apos;s where you stand</p>
+          <h1 className="text-2xl md:text-3xl font-black text-white">Your Dashboard</h1>
+          <p className="text-slate-400 mt-1 text-sm">Welcome back — here&apos;s where you stand</p>
         </div>
       </div>
 
       {/* Presence Score + Pillars */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
         <Card className="p-6 flex flex-col items-center justify-center">
           <CompositeScoreRing score={composite} />
           {composite === 0 && (
@@ -71,8 +82,53 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Style Profile Hero — Last Look + CTA */}
+      <div className="mb-6 rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-950/40 to-slate-900/80 overflow-hidden">
+        <div className="flex flex-col md:flex-row items-stretch gap-0">
+          {/* Last look image */}
+          {lastLookUrl ? (
+            <div className="md:w-48 shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lastLookUrl}
+                alt="Your ideal look"
+                className="w-full h-48 md:h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="md:w-48 shrink-0 h-40 md:h-auto bg-violet-950/40 flex items-center justify-center border-r border-violet-800/30">
+              <Wand2 size={32} className="text-violet-700" />
+            </div>
+          )}
+          {/* Content */}
+          <div className="flex-1 p-5 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles size={15} className="text-violet-400" />
+                <span className="text-xs text-violet-400 font-semibold uppercase tracking-wider">Style Profile</span>
+              </div>
+              <p className="text-white font-bold text-lg leading-tight">
+                {lastLookUrl ? 'Your ideal look is ready' : 'See yourself in your ideal look'}
+              </p>
+              <p className="text-slate-400 text-sm mt-1">
+                {lastLookUrl
+                  ? 'AI-generated based on your face scan & style archetype.'
+                  : 'Get your archetype, color palette, and an AI-generated style image.'}
+              </p>
+            </div>
+            <Link href="/style-profile">
+              <Button size="sm" className="bg-violet-600 hover:bg-violet-500 gap-2 w-full md:w-auto">
+                <Sparkles size={14} />
+                {lastLookUrl ? 'View Style Profile' : 'Generate My Look'}
+                <ArrowRight size={14} />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           { href: '/face-scan', icon: Camera, label: 'Scan My Look', color: 'text-violet-400', desc: 'Style & appearance coaching' },
           { href: '/voice-check', icon: Mic, label: 'Voice Check', color: 'text-sky-400', desc: 'Clarity, tone & grammar' },
@@ -80,11 +136,11 @@ export default async function DashboardPage() {
           { href: '/chat-coach', icon: MessageCircleHeart, label: 'Chat Coach', color: 'text-rose-400', desc: 'Analyze your DMs' },
         ].map(({ href, icon: Icon, label, color, desc }) => (
           <Link key={href} href={href}>
-            <Card className="p-5 hover:border-slate-600 transition-colors cursor-pointer group">
-              <Icon size={22} className={`${color} mb-3`} />
+            <Card className="p-4 hover:border-slate-600 transition-colors cursor-pointer group h-full">
+              <Icon size={20} className={`${color} mb-2`} />
               <p className="font-semibold text-white text-sm group-hover:text-violet-300 transition-colors">{label}</p>
-              <p className="text-xs text-slate-500 mt-1">{desc}</p>
-              <ArrowRight size={14} className="text-slate-600 group-hover:text-violet-400 mt-3 transition-colors" />
+              <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+              <ArrowRight size={13} className="text-slate-600 group-hover:text-violet-400 mt-2 transition-colors" />
             </Card>
           </Link>
         ))}

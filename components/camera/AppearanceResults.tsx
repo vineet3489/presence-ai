@@ -2,7 +2,7 @@
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Sparkles, Shirt, Activity, Star } from 'lucide-react';
+import { Sparkles, Shirt, Activity, Zap } from 'lucide-react';
 import type { AppearanceResult } from '@/types';
 
 interface Props {
@@ -36,6 +36,14 @@ const SKIN_TONE_COLORS: Record<string, string> = {
   olive: '#c8a96e', tan: '#b8825a', deep: '#7d4f2a',
 };
 
+function scoreTier(s: number): { label: string; color: string } {
+  if (s >= 88) return { label: 'Elite Presence', color: '#f59e0b' };
+  if (s >= 74) return { label: 'Strong', color: '#8b5cf6' };
+  if (s >= 58) return { label: 'Solid', color: '#38bdf8' };
+  if (s >= 40) return { label: 'Building', color: '#34d399' };
+  return { label: 'Raw Material', color: '#94a3b8' };
+}
+
 function SkinToneChip({ tone }: { tone: string }) {
   const color = SKIN_TONE_COLORS[tone.toLowerCase()] ?? '#c8a96e';
   return (
@@ -46,69 +54,88 @@ function SkinToneChip({ tone }: { tone: string }) {
   );
 }
 
-function ScoreCircle({ label, value, color }: { label: string; value: number; color: string }) {
+function Tip({ text, accent }: { text: string; accent: string }) {
+  // Extract first ~8 words as a punchy headline, rest as context
+  const words = text.split(' ');
+  const headline = words.slice(0, 7).join(' ');
+  const rest = words.slice(7).join(' ');
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div
-        className="w-14 h-14 rounded-full border-[3px] flex items-center justify-center text-base font-black text-white"
-        style={{ borderColor: color }}
-      >
-        {value}
+    <div className="flex gap-3 px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors">
+      <div className="w-1 shrink-0 rounded-full mt-1" style={{ background: accent, minHeight: '1.2rem' }} />
+      <div>
+        <p className="text-white text-sm font-semibold leading-snug">{headline}</p>
+        {rest && <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{rest}</p>}
       </div>
-      <span className="text-xs text-slate-400">{label}</span>
     </div>
   );
 }
 
-function TipCard({ text, index, accent }: { text: string; index: number; accent: string }) {
-  return (
-    <div
-      className="flex gap-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors"
-      style={{ animationDelay: `${index * 60}ms` }}
-    >
-      <span
-        className="shrink-0 w-6 h-6 rounded-full text-xs font-black flex items-center justify-center text-white mt-0.5"
-        style={{ background: accent }}
-      >
-        {index + 1}
-      </span>
-      <p className="text-slate-200 text-sm leading-relaxed">{text}</p>
-    </div>
-  );
-}
-
-function ColorSwatch({ text, index }: { text: string; index: number }) {
+function ColorSwatch({ text }: { text: string }) {
   const color = swatchColor(text);
+  const words = text.split(' ');
+  const headline = words.slice(0, 5).join(' ');
+  const rest = words.slice(5).join(' ');
   return (
-    <div
-      className="flex items-start gap-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors"
-      style={{ animationDelay: `${index * 60}ms` }}
-    >
+    <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors">
       <div
-        className="w-10 h-10 rounded-lg shrink-0 border border-white/10 mt-0.5"
+        className="w-8 h-8 rounded-lg shrink-0 border border-white/10 mt-0.5"
         style={color ? { background: color } : { background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}
       />
-      <p className="text-slate-200 text-sm leading-relaxed">{text}</p>
+      <div>
+        <p className="text-white text-sm font-semibold leading-snug">{headline}</p>
+        {rest && <p className="text-slate-500 text-xs mt-0.5">{rest}</p>}
+      </div>
     </div>
   );
 }
 
-function SectionLabel({ label, color }: { label: string; color: string }) {
-  return <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{label}</p>;
+function VerdictCard({ text }: { text: string }) {
+  // Split into sentences for punchy display
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const verdict = sentences[0] ?? text;
+  const insights = sentences.slice(1);
+
+  return (
+    <div className="space-y-3">
+      {/* Big verdict */}
+      <div className="rounded-2xl bg-gradient-to-br from-violet-950/60 to-slate-900 border border-violet-700/40 p-5">
+        <p className="text-xs text-violet-400 font-semibold uppercase tracking-widest mb-2">The Verdict</p>
+        <p className="text-white text-base font-semibold leading-relaxed">{verdict}</p>
+      </div>
+      {/* Punchy insights */}
+      {insights.length > 0 && (
+        <div className="space-y-2">
+          {insights.map((s, i) => (
+            <div key={i} className="flex gap-3 px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-800">
+              <span className="text-violet-400 font-black text-sm shrink-0">→</span>
+              <p className="text-slate-300 text-sm leading-relaxed">{s}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AppearanceResults({ result, score }: Props) {
+  const tier = scoreTier(score);
+
   return (
     <div className="space-y-5">
       {/* Score header */}
       <div className="rounded-2xl border border-violet-800/40 bg-gradient-to-br from-violet-950/60 to-slate-900 p-5">
         <div className="flex items-center gap-5 flex-wrap">
-          <div className="flex flex-col items-center min-w-[64px]">
+          <div className="flex flex-col items-center min-w-[72px]">
             <span className="text-5xl font-black text-white leading-none">{score}</span>
-            <span className="text-xs text-slate-400 mt-1">/ 100</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: tier.color }}>
+              {tier.label}
+            </span>
           </div>
           <div className="flex-1 min-w-40">
-            <p className="text-sm font-semibold text-white mb-2">Appearance Score</p>
             <Progress value={score} className="h-2 mb-3" />
             <div className="flex gap-2 flex-wrap items-center">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300 font-medium">
@@ -117,76 +144,80 @@ export function AppearanceResults({ result, score }: Props) {
               <SkinToneChip tone={result.skinTone} />
             </div>
           </div>
-          <div className="flex gap-4">
-            <ScoreCircle label="Expression" value={result.expressionScore} color="#8b5cf6" />
-            <ScoreCircle label="Posture" value={result.postureScore} color="#38bdf8" />
+          <div className="flex gap-5 text-center">
+            <div>
+              <p className="text-2xl font-black text-white">{result.expressionScore}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Expression</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">{result.postureScore}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Posture</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="face">
+      <Tabs defaultValue="verdict">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="face" className="gap-1 text-xs"><Sparkles size={13} /> Face</TabsTrigger>
-          <TabsTrigger value="style" className="gap-1 text-xs"><Shirt size={13} /> Colors</TabsTrigger>
-          <TabsTrigger value="posture" className="gap-1 text-xs"><Activity size={13} /> Posture</TabsTrigger>
-          <TabsTrigger value="coaching" className="gap-1 text-xs"><Star size={13} /> Full Read</TabsTrigger>
+          <TabsTrigger value="verdict" className="gap-1 text-xs"><Zap size={12} /> Verdict</TabsTrigger>
+          <TabsTrigger value="face" className="gap-1 text-xs"><Sparkles size={12} /> Face</TabsTrigger>
+          <TabsTrigger value="style" className="gap-1 text-xs"><Shirt size={12} /> Colors</TabsTrigger>
+          <TabsTrigger value="posture" className="gap-1 text-xs"><Activity size={12} /> Posture</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="face" className="space-y-4 mt-4">
-          <SectionLabel label="Hairstyle" color="#8b5cf6" />
+        <TabsContent value="verdict" className="mt-4">
+          <VerdictCard text={result.overallCoaching} />
+        </TabsContent>
+
+        <TabsContent value="face" className="space-y-3 mt-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-violet-400">Hairstyle</p>
           <div className="space-y-2">
             {result.hairstyleRecommendations.map((tip, i) => (
-              <TipCard key={i} text={tip} index={i} accent="#8b5cf6" />
+              <Tip key={i} text={tip} accent="#8b5cf6" />
             ))}
           </div>
-          <SectionLabel label="Expression" color="#a78bfa" />
+          <p className="text-xs font-bold uppercase tracking-widest text-violet-300 pt-1">Expression</p>
           <div className="space-y-2">
             {result.expressionTips.map((tip, i) => (
-              <TipCard key={i} text={tip} index={i} accent="#a78bfa" />
+              <Tip key={i} text={tip} accent="#a78bfa" />
             ))}
           </div>
           {result.groomingTips.length > 0 && (
             <>
-              <SectionLabel label="Grooming" color="#6d28d9" />
+              <p className="text-xs font-bold uppercase tracking-widest text-violet-500 pt-1">Grooming</p>
               <div className="space-y-2">
                 {result.groomingTips.map((tip, i) => (
-                  <TipCard key={i} text={tip} index={i} accent="#6d28d9" />
+                  <Tip key={i} text={tip} accent="#6d28d9" />
                 ))}
               </div>
             </>
           )}
         </TabsContent>
 
-        <TabsContent value="style" className="space-y-4 mt-4">
-          <SectionLabel label="Best Colors for Your Skin Tone" color="#38bdf8" />
+        <TabsContent value="style" className="space-y-3 mt-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-sky-400">Colors That Work For You</p>
           <div className="space-y-2">
             {result.clothingColors.map((c, i) => (
-              <ColorSwatch key={i} text={c} index={i} />
+              <ColorSwatch key={i} text={c} />
             ))}
           </div>
         </TabsContent>
 
-        <TabsContent value="posture" className="space-y-4 mt-4">
-          <div className="rounded-xl bg-sky-950/40 border border-sky-800/40 p-4 flex items-center gap-4">
-            <div className="text-4xl font-black text-white">{result.postureScore}</div>
+        <TabsContent value="posture" className="space-y-3 mt-4">
+          <div className="rounded-xl bg-sky-950/40 border border-sky-800/40 p-4 flex items-center gap-5">
+            <div>
+              <p className="text-4xl font-black text-white">{result.postureScore}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Posture</p>
+            </div>
             <div className="flex-1">
-              <p className="text-xs text-slate-400 mb-1.5">Posture Score</p>
               <Progress value={result.postureScore} className="h-2" />
             </div>
           </div>
-          <SectionLabel label="Corrections" color="#34d399" />
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 pt-1">Fix These</p>
           <div className="space-y-2">
             {result.postureCorrections.map((tip, i) => (
-              <TipCard key={i} text={tip} index={i} accent="#059669" />
+              <Tip key={i} text={tip} accent="#059669" />
             ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="coaching" className="mt-4">
-          <div className="rounded-2xl bg-gradient-to-br from-violet-950/40 to-slate-900 border border-violet-800/30 p-5">
-            <p className="text-slate-200 leading-relaxed text-sm whitespace-pre-line">
-              {result.overallCoaching}
-            </p>
           </div>
         </TabsContent>
       </Tabs>

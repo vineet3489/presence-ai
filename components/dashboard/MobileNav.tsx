@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 const PRIMARY_NAV = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/face-scan', label: 'Look', icon: Camera },
-  { href: '/voice-check', label: 'Voice', icon: Mic },
   { href: '/style-profile', label: 'Style', icon: Sparkles },
+  { href: '/voice-check', label: 'Voice', icon: Mic },
   { href: '/date-prep', label: 'Date', icon: Heart },
 ];
 

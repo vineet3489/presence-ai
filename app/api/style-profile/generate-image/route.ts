@@ -106,10 +106,23 @@ export async function POST(req: Request) {
   for (const candidate of data.candidates ?? []) {
     for (const part of candidate.content?.parts ?? []) {
       if (part.inlineData?.data) {
-        return NextResponse.json({
-          imageBase64: part.inlineData.data,
-          mimeType: part.inlineData.mimeType || 'image/png',
-        });
+        const imageBase64 = part.inlineData.data;
+        const mimeType = part.inlineData.mimeType || 'image/png';
+
+        // Persist the look so the dashboard can display it
+        try {
+          const admin = createAdminClient();
+          await admin.storage
+            .from('face-scans')
+            .upload(`${user.id}/last-look.jpg`, Buffer.from(imageBase64, 'base64'), {
+              contentType: mimeType,
+              upsert: true,
+            });
+        } catch (e) {
+          console.error('Failed to persist look (non-fatal):', e);
+        }
+
+        return NextResponse.json({ imageBase64, mimeType });
       }
     }
   }

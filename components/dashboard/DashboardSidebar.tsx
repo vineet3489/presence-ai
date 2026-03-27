@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/face-scan', label: 'Face Scan', icon: Camera },
+  { href: '/style-profile', label: 'Style Profile', icon: Sparkles, highlight: true },
   { href: '/voice-check', label: 'Voice Check', icon: Mic },
-  { href: '/style-profile', label: 'Style Profile', icon: Sparkles },
   { href: '/roleplay', label: 'Roleplay', icon: Users },
   { href: '/date-prep', label: 'Date Prep', icon: Heart },
   { href: '/chat-coach', label: 'Chat Coach', icon: MessageCircleHeart },
@@ -35,7 +35,7 @@ export function DashboardSidebar() {
         <span className="text-lg font-black gradient-text">PresenceAI</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map(({ href, label, icon: Icon }) => (
+        {NAV.map(({ href, label, icon: Icon, highlight }) => (
           <Link
             key={href}
             href={href}
@@ -43,11 +43,16 @@ export function DashboardSidebar() {
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
               pathname === href
                 ? 'bg-violet-600/20 text-violet-300 border border-violet-700/40'
+                : highlight
+                ? 'text-violet-300 hover:text-violet-200 hover:bg-violet-900/20 border border-violet-800/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             )}
           >
             <Icon size={18} />
             {label}
+            {highlight && pathname !== href && (
+              <span className="ml-auto text-[10px] bg-violet-600/30 text-violet-300 px-1.5 py-0.5 rounded-full">New</span>
+            )}
           </Link>
         ))}
       </nav>
