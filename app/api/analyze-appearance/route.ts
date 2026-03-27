@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { callClaudeWithImage } from '@/lib/claude/client';
 import { APPEARANCE_SYSTEM_PROMPT, buildAppearancePrompt } from '@/lib/claude/prompts';
 import { scoreAppearance } from '@/lib/scoring/presenceScore';
@@ -53,6 +54,31 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (dbError) console.error('DB save error:', dbError);
+
+    // Store photo in Supabase Storage for personalized look generation
+    if (session?.id) {
+      try {
+        const admin = createAdminClient();
+        const photoPath = `${user.id}/${session.id}.jpg`;
+        const { error: uploadErr } = await admin.storage
+          .from('face-scans')
+          .upload(photoPath, Buffer.from(imageBase64, 'base64'), {
+            contentType: mediaType,
+            upsert: true,
+          });
+        if (uploadErr) {
+          console.error('Photo storage upload error:', uploadErr);
+        } else {
+          // Update session with photo path so generate-image can retrieve it
+          await admin
+            .from('analysis_sessions')
+            .update({ appearance_result: { ...result, photoStoragePath: photoPath } })
+            .eq('id', session.id);
+        }
+      } catch (e) {
+        console.error('Photo storage error (non-fatal):', e);
+      }
+    }
 
     return NextResponse.json({ result, score, sessionId: session?.id });
   } catch (err) {

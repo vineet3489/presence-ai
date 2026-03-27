@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
 
   const faceShape = (lastScan?.appearance_result as any)?.faceShape || null;
   const skinTone = (lastScan?.appearance_result as any)?.skinTone || null;
+  const photoStoragePath = (lastScan?.appearance_result as any)?.photoStoragePath || null;
 
   if (!faceShape || !skinTone) {
     return NextResponse.json(
@@ -40,13 +42,42 @@ export async function POST(req: Request) {
     );
   }
 
+  // Retrieve stored face scan photo for personalized generation
+  let userPhotoBase64: string | null = null;
+  let userPhotoMime = 'image/jpeg';
+  if (photoStoragePath) {
+    try {
+      const admin = createAdminClient();
+      const { data: signedData } = await admin.storage
+        .from('face-scans')
+        .createSignedUrl(photoStoragePath, 300);
+      if (signedData?.signedUrl) {
+        const photoRes = await fetch(signedData.signedUrl);
+        if (photoRes.ok) {
+          const buf = await photoRes.arrayBuffer();
+          userPhotoBase64 = Buffer.from(buf).toString('base64');
+          userPhotoMime = photoRes.headers.get('content-type') || 'image/jpeg';
+        }
+      }
+    } catch (e) {
+      console.error('Failed to retrieve face photo (non-fatal):', e);
+    }
+  }
+
   const age = profile?.age || null;
   const outfit = styleProfile.signatureOutfits?.[0]?.outfit || '';
   const colors = [...(styleProfile.colorPalette.primary || []), ...(styleProfile.colorPalette.accent || [])].slice(0, 4).join(', ');
-  const prompt = buildImagePrompt({ archetype: styleProfile.archetype, outfit, colors, faceShape, skinTone, age });
+  const prompt = buildImagePrompt({ archetype: styleProfile.archetype, outfit, colors, faceShape, skinTone, age, hasPhoto: !!userPhotoBase64 });
 
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Google AI not configured' }, { status: 500 });
+
+  // Build multimodal parts — include user's actual photo if available
+  const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+  if (userPhotoBase64) {
+    parts.push({ inlineData: { mimeType: userPhotoMime, data: userPhotoBase64 } });
+  }
+  parts.push({ text: prompt });
 
   // Gemini 2.5 Flash image generation via AI Studio REST API
   const res = await fetch(
@@ -55,7 +86,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts }],
         generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
       }),
     }
@@ -94,7 +125,11 @@ function buildImagePrompt(data: {
   faceShape: string;
   skinTone: string;
   age: number | null;
+  hasPhoto: boolean;
 }): string {
   const ageDesc = data.age ? `${data.age}-year-old ` : '';
+  if (data.hasPhoto) {
+    return `Take the person in this photo and reimagine them in a professional fashion editorial setting. Keep their face, features, and physical appearance exactly as they are — do not change how they look. Style them wearing: ${data.outfit}. Color palette: ${data.colors}. Archetype: "${data.archetype}". Studio lighting, clean neutral background, confident relaxed posture, high-quality fashion photography, photorealistic.`;
+  }
   return `Fashion editorial photograph of a ${ageDesc}South Asian person with ${data.faceShape} face shape and ${data.skinTone} skin tone, embodying the "${data.archetype}" aesthetic. Wearing: ${data.outfit}. Color palette: ${data.colors}. Studio lighting, sharp focus, clean neutral background, confident relaxed posture, high-quality fashion photography, photorealistic.`;
 }
