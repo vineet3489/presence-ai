@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { AppearanceResult } from '@/types';
 
