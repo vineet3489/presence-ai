@@ -1,12 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Button } from '@/components/ui/button';
 import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { VoiceResult } from '@/types';
+
+const VOICE_STAGES = [
+  { pct: 22, label: 'Reading your transcript…', delay: 400 },
+  { pct: 45, label: 'Counting filler words…', delay: 1400 },
+  { pct: 65, label: 'Checking grammar & tone…', delay: 2600 },
+  { pct: 83, label: 'Building your coaching…', delay: 3800 },
+];
 
 type State = 'loading' | 'idle' | 'analyzing' | 'done' | 'error';
 
@@ -27,6 +34,22 @@ export default function VoiceCheckPage() {
   const [history, setHistory] = useState<SessionSnap[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [analysisPct, setAnalysisPct] = useState(0);
+  const [analysisLabel, setAnalysisLabel] = useState('Starting…');
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (state !== 'analyzing') {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      setAnalysisPct(0);
+      return;
+    }
+    timersRef.current = VOICE_STAGES.map(({ pct, label, delay }) =>
+      setTimeout(() => { setAnalysisPct(pct); setAnalysisLabel(label); }, delay)
+    );
+    return () => { timersRef.current.forEach(clearTimeout); };
+  }, [state]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -113,10 +136,26 @@ export default function VoiceCheckPage() {
           <VoiceRecorder onTranscript={handleTranscript} prompt={PROMPT} />
 
           {state === 'analyzing' && (
-            <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
-              <Loader2 size={32} className="animate-spin text-sky-400" />
-              <p className="text-sm">Analyzing your speech…</p>
-              <p className="text-xs text-slate-600">Checking grammar, tone, and clarity</p>
+            <div className="flex flex-col items-center gap-4 py-10">
+              <div className="relative w-24 h-24">
+                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="#0c2030" strokeWidth="6" />
+                  <circle
+                    cx="48" cy="48" r="40" fill="none" stroke="#0ea5e9" strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - analysisPct / 100)}`}
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-black text-white">{analysisPct}%</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-white">Presence AI is listening</p>
+                <p className="text-xs text-slate-500 mt-1">{analysisLabel}</p>
+              </div>
             </div>
           )}
 
