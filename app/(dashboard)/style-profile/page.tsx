@@ -52,12 +52,12 @@ export default function StyleProfilePage() {
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
   const [noScan, setNoScan] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<{ base64: string; mimeType: string } | null>(null);
+  // src can be a data URI (freshly generated) or a signed URL (loaded from storage)
+  const [lookSrc, setLookSrc] = useState<string | null>(null);
 
   async function fetchProfile(force = false) {
     force ? setRefreshing(true) : setLoading(true);
     setError('');
-    if (force) setGeneratedImage(null); // reset image on refresh
     try {
       const res = await fetch(`/api/style-profile${force ? '?refresh=1' : ''}`);
       const data = await res.json();
@@ -70,6 +70,14 @@ export default function StyleProfilePage() {
       setRefreshing(false);
     }
   }
+
+  // Load previously stored look on mount
+  useEffect(() => {
+    fetch('/api/style-profile/last-look')
+      .then(r => r.json())
+      .then(({ url }) => { if (url) setLookSrc(url); })
+      .catch(() => {});
+  }, []);
 
   async function generateLook() {
     if (!profile) return;
@@ -87,7 +95,7 @@ export default function StyleProfilePage() {
         if (data.error === 'no_scan') { setNoScan(true); return; }
         throw new Error(data.error || data.message || 'Generation failed');
       }
-      setGeneratedImage({ base64: data.imageBase64, mimeType: data.mimeType });
+      setLookSrc(`data:${data.mimeType};base64,${data.imageBase64}`);
     } catch (err) {
       setGenError(err instanceof Error ? err.message : 'Image generation failed');
     } finally {
@@ -95,12 +103,24 @@ export default function StyleProfilePage() {
     }
   }
 
-  function downloadImage() {
-    if (!generatedImage) return;
-    const link = document.createElement('a');
-    link.href = `data:${generatedImage.mimeType};base64,${generatedImage.base64}`;
-    link.download = 'my-ideal-look.png';
-    link.click();
+  async function downloadImage() {
+    if (!lookSrc) return;
+    // If it's a signed URL, fetch and convert to blob for download
+    if (lookSrc.startsWith('http')) {
+      const res = await fetch(lookSrc);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'my-ideal-look.jpg';
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const link = document.createElement('a');
+      link.href = lookSrc;
+      link.download = 'my-ideal-look.png';
+      link.click();
+    }
   }
 
   useEffect(() => { fetchProfile(); }, []);
@@ -161,47 +181,12 @@ export default function StyleProfilePage() {
             Generate a visual of how you'd look in your ideal archetype outfit — based on your face scan + style profile.
           </p>
 
-          {!generatedImage ? (
-            <>
-              {noScan ? (
-                <div className="rounded-xl border border-amber-800/40 bg-amber-900/15 p-4 text-center">
-                  <p className="text-sm text-amber-300 font-medium mb-1">Face Scan required</p>
-                  <p className="text-xs text-slate-400 mb-3">
-                    We need your face scan data to generate a look that's actually based on you — not a random person.
-                  </p>
-                  <a href="/face-scan" className="inline-flex items-center gap-1.5 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded-lg px-4 py-2 transition-colors">
-                    Go do a Face Scan →
-                  </a>
-                </div>
-              ) : (
-                <>
-                  {genError && <p className="text-xs text-red-400 mb-3">{genError}</p>}
-                  <Button
-                    onClick={generateLook}
-                    disabled={genLoading}
-                    className="w-full bg-violet-600 hover:bg-violet-500 gap-2"
-                  >
-                    {genLoading ? (
-                      <>
-                        <Loader2 size={15} className="animate-spin" />
-                        Generating your look… (~15s)
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 size={15} />
-                        Generate My Ideal Look
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
-            </>
-          ) : (
+          {lookSrc ? (
             <div className="space-y-3">
               <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-700">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`data:${generatedImage.mimeType};base64,${generatedImage.base64}`}
+                  src={lookSrc}
                   alt="Your ideal look"
                   className="w-full object-cover"
                 />
@@ -219,6 +204,35 @@ export default function StyleProfilePage() {
                 AI-generated style inspiration — not your exact likeness
               </p>
             </div>
+          ) : (
+            <>
+              {noScan ? (
+                <div className="rounded-xl border border-amber-800/40 bg-amber-900/15 p-4 text-center">
+                  <p className="text-sm text-amber-300 font-medium mb-1">Face Scan required</p>
+                  <p className="text-xs text-slate-400 mb-3">
+                    We need your face scan data to generate a look that&apos;s actually based on you — not a random person.
+                  </p>
+                  <a href="/face-scan" className="inline-flex items-center gap-1.5 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded-lg px-4 py-2 transition-colors">
+                    Go do a Face Scan →
+                  </a>
+                </div>
+              ) : (
+                <>
+                  {genError && <p className="text-xs text-red-400 mb-3">{genError}</p>}
+                  <Button
+                    onClick={generateLook}
+                    disabled={genLoading}
+                    className="w-full bg-violet-600 hover:bg-violet-500 gap-2"
+                  >
+                    {genLoading ? (
+                      <><Loader2 size={15} className="animate-spin" /> Generating your look… (~15s)</>
+                    ) : (
+                      <><Wand2 size={15} /> Generate My Ideal Look</>
+                    )}
+                  </Button>
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
