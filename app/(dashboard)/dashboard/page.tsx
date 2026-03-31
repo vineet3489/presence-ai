@@ -9,6 +9,7 @@ import { WelcomeVoice } from '@/components/dashboard/WelcomeVoice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Mic, Heart, ArrowRight, MessageCircleHeart, Sparkles, Wand2, Zap } from 'lucide-react';
+import { AvatarCard } from '@/components/dashboard/AvatarCard';
 import type { AnalysisSession, AppearanceResult, VoiceResult } from '@/types';
 
 function shortFix(text: string): string {
@@ -152,6 +153,9 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Avatar video */}
+      <AvatarCard />
 
       {/* Style Profile hero — Last Look */}
       <div className="rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-950/40 to-slate-900/80 overflow-hidden">
