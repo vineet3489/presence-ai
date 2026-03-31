@@ -41,15 +41,16 @@ export function AvatarCard() {
   // On mount: check for existing video
   useEffect(() => {
     fetch('/api/avatar/last-video')
-      .then(r => r.json())
-      .then(({ url }) => {
-        if (url) { setVideoUrl(url); setPhase('done'); }
-        else {
-          // Check localStorage for an in-progress videoId
-          const savedId = localStorage.getItem('heygen_video_id');
-          if (savedId) startPolling(savedId);
-          else setPhase('idle');
-        }
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const { url } = JSON.parse(text) as { url?: string };
+          if (url) { setVideoUrl(url); setPhase('done'); return; }
+        } catch { /* ignore */ }
+        // Check localStorage for an in-progress videoId
+        const savedId = localStorage.getItem('heygen_video_id');
+        if (savedId) startPolling(savedId);
+        else setPhase('idle');
       })
       .catch(() => setPhase('idle'));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,7 +84,9 @@ export function AvatarCard() {
     async function poll() {
       try {
         const res = await fetch(`/api/avatar/status?videoId=${videoId}`);
-        const data = await res.json();
+        const text = await res.text();
+        let data: { status?: string; videoUrl?: string; error?: string } = {};
+        try { data = JSON.parse(text); } catch { pollRef.current = setTimeout(poll, 8000); return; }
 
         if (data.status === 'completed' && data.videoUrl) {
           stageTimers.current.forEach(clearTimeout);
@@ -121,7 +124,14 @@ export function AvatarCard() {
       setPhase('uploading');
 
       const res = await fetch('/api/avatar/generate', { method: 'POST' });
-      const data = await res.json();
+      const text = await res.text();
+      let data: { videoId?: string; script?: string; error?: string; message?: string } = {};
+      try { data = JSON.parse(text); } catch {
+        setError(`Server error (${res.status}) — open browser console for details`);
+        console.error('[AvatarCard] non-JSON response:', text.slice(0, 500));
+        setPhase('error');
+        return;
+      }
 
       if (!res.ok) {
         setError(data.message || data.error || 'Generation failed');
@@ -130,7 +140,8 @@ export function AvatarCard() {
       }
 
       const { videoId, script: s } = data;
-      setScript(s);
+      if (!videoId) { setError('No video ID returned'); setPhase('error'); return; }
+      setScript(s ?? null);
       localStorage.setItem('heygen_video_id', videoId);
       startPolling(videoId);
     } catch (err) {

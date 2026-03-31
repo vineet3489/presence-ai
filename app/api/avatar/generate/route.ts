@@ -33,21 +33,25 @@ Rules:
   return ((msg.content[0] as { text: string }).text).trim();
 }
 
-async function getPresetVoice(): Promise<string | null> {
+async function getPresetVoice(userNameHint?: string): Promise<string | null> {
   try {
     const res = await fetch('https://api.heygen.com/v2/voices', {
       headers: { 'X-Api-Key': HEYGEN },
     });
-    const data = await res.json();
+    const data = await res.text().then(t => JSON.parse(t));
     const voices: { voice_id: string; language?: string; gender?: string; name?: string }[] =
       data.data?.voices || data.voices || [];
-    // Prefer English male voice
-    const pick = voices.find(v =>
-      (v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('english'))
-      && v.gender?.toLowerCase() === 'male'
-    ) || voices.find(v =>
-      v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('en')
-    ) || voices[0];
+    // Try to match user's cloned voice by name, then fall back to generic English male
+    const nameParts = userNameHint?.toLowerCase().split(/\s+/).filter(Boolean) ?? [];
+    const pick = (nameParts.length > 0
+      ? voices.find(v => nameParts.some(p => v.name?.toLowerCase().includes(p)))
+      : undefined)
+      || voices.find(v =>
+        (v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('english'))
+        && v.gender?.toLowerCase() === 'male'
+      ) || voices.find(v =>
+        v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('en')
+      ) || voices[0];
     return pick?.voice_id ?? null;
   } catch {
     return null;
@@ -77,7 +81,7 @@ export async function POST() {
       .eq('user_id', user.id).eq('session_type', 'date_prep')
       .like('date_prep_result->>type', 'style_profile%')
       .order('created_at', { ascending: false }).limit(1).single(),
-    supabase.from('user_profiles').select('goals').eq('user_id', user.id).single(),
+    supabase.from('user_profiles').select('goals, full_name').eq('user_id', user.id).single(),
   ]);
 
   const photoPath = (lastScan?.appearance_result as Record<string, unknown>)?.photoStoragePath as string | null;
@@ -93,6 +97,8 @@ export async function POST() {
     || 'The Sharp Minimalist';
   const voiceFixes: string[] = ((voiceSession?.voice_result as Record<string, unknown>)?.improvementsList as string[]) || [];
   const goal: string = (profile?.goals as string[])?.[0] || '';
+  const userName: string = (profile as Record<string, unknown>)?.full_name as string
+    || user.email?.split('@')[0] || '';
 
   try {
     // 1. Generate script
@@ -105,18 +111,27 @@ export async function POST() {
       .createSignedUrl(photoPath, 600);
     if (signErr || !signedData?.signedUrl) throw new Error('Could not access face photo. Try re-scanning.');
 
-    // 3. Upload photo to HeyGen via JSON (image_url) → get talking_photo_id
-    const uploadRes = await fetch('https://api.heygen.com/v1/talking_photo', {
+    // 3. Download photo from Supabase, then POST raw binary to HeyGen
+    const photoRes = await fetch(signedData.signedUrl);
+    if (!photoRes.ok) throw new Error('Could not download face photo from storage.');
+    const photoBuffer = Buffer.from(await photoRes.arrayBuffer());
+    const photoMime = photoRes.headers.get('content-type') || 'image/jpeg';
+
+    const uploadRes = await fetch('https://upload.heygen.com/v1/talking_photo', {
       method: 'POST',
-      headers: { 'X-Api-Key': HEYGEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: signedData.signedUrl }),
+      headers: { 'X-Api-Key': HEYGEN, 'Content-Type': photoMime },
+      body: photoBuffer,
     });
-    const uploadData = await uploadRes.json();
-    const talkingPhotoId: string | undefined = uploadData.data?.talking_photo_id;
+    const uploadText = await uploadRes.text();
+    let uploadData: { code?: number; data?: { talking_photo_id?: string }; message?: string } = {};
+    try { uploadData = JSON.parse(uploadText); } catch {
+      throw new Error(`HeyGen upload returned non-JSON (status ${uploadRes.status}): ${uploadText.slice(0, 200)}`);
+    }
+    const talkingPhotoId = uploadData.data?.talking_photo_id;
     if (!talkingPhotoId) throw new Error(`Photo upload failed: ${JSON.stringify(uploadData)}`);
 
-    // 4. Pick a voice
-    const voiceId = await getPresetVoice();
+    // 4. Pick a voice — prefer user's own cloned voice matched by name
+    const voiceId = await getPresetVoice(userName);
     if (!voiceId) throw new Error('No voice available from HeyGen');
 
     // 5. Generate video — character uses nested talking_photo object (HeyGen v2 format)
@@ -145,8 +160,12 @@ export async function POST() {
         test: false,
       }),
     });
-    const videoData = await videoRes.json();
-    const videoId: string | undefined = videoData.data?.video_id;
+    const videoText = await videoRes.text();
+    let videoData: { data?: { video_id?: string }; error?: { message?: string } } = {};
+    try { videoData = JSON.parse(videoText); } catch {
+      throw new Error(`HeyGen video returned non-JSON (status ${videoRes.status}): ${videoText.slice(0, 200)}`);
+    }
+    const videoId = videoData.data?.video_id;
     if (!videoId) throw new Error(`Video generation failed: ${JSON.stringify(videoData)}`);
 
     return NextResponse.json({ videoId, script });
