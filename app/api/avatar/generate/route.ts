@@ -98,19 +98,28 @@ export async function POST() {
     // 1. Generate script
     const script = await buildScript(archetype, voiceFixes, goal);
 
-    // 2. Get a signed URL for the face photo (HeyGen fetches it directly — no upload step needed)
+    // 2. Get signed URL so HeyGen can fetch the photo
     const admin = createAdminClient();
     const { data: signedData, error: signErr } = await admin.storage
       .from('face-scans')
-      .createSignedUrl(photoPath, 600); // 10-min window for HeyGen to fetch
+      .createSignedUrl(photoPath, 600);
     if (signErr || !signedData?.signedUrl) throw new Error('Could not access face photo. Try re-scanning.');
-    const photoUrl = signedData.signedUrl;
 
-    // 3. Pick a voice
+    // 3. Upload photo to HeyGen via JSON (image_url) → get talking_photo_id
+    const uploadRes = await fetch('https://api.heygen.com/v1/talking_photo', {
+      method: 'POST',
+      headers: { 'X-Api-Key': HEYGEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: signedData.signedUrl }),
+    });
+    const uploadData = await uploadRes.json();
+    const talkingPhotoId: string | undefined = uploadData.data?.talking_photo_id;
+    if (!talkingPhotoId) throw new Error(`Photo upload failed: ${JSON.stringify(uploadData)}`);
+
+    // 4. Pick a voice
     const voiceId = await getPresetVoice();
     if (!voiceId) throw new Error('No voice available from HeyGen');
 
-    // 4. Generate the video — pass photo URL directly as talking_photo_url
+    // 5. Generate video — character uses nested talking_photo object (HeyGen v2 format)
     const videoRes = await fetch('https://api.heygen.com/v2/video/generate', {
       method: 'POST',
       headers: { 'X-Api-Key': HEYGEN, 'Content-Type': 'application/json' },
@@ -118,9 +127,11 @@ export async function POST() {
         video_inputs: [{
           character: {
             type: 'talking_photo',
-            talking_photo_url: photoUrl,
-            scale: 1.0,
-            talking_style: 'stable',
+            talking_photo: {
+              talking_photo_id: talkingPhotoId,
+              talking_style: 'stable',
+              scale: 1.0,
+            },
           },
           voice: {
             type: 'text',
