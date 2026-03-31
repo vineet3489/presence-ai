@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+// Note: photo is passed as a signed URL — no separate HeyGen upload needed
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const HEYGEN = process.env.HEYGEN_API_KEY!;
@@ -97,32 +98,19 @@ export async function POST() {
     // 1. Generate script
     const script = await buildScript(archetype, voiceFixes, goal);
 
-    // 2. Download face photo from Supabase Storage
+    // 2. Get a signed URL for the face photo (HeyGen fetches it directly — no upload step needed)
     const admin = createAdminClient();
-    const { data: photoBlob, error: dlErr } = await admin.storage
+    const { data: signedData, error: signErr } = await admin.storage
       .from('face-scans')
-      .download(photoPath);
-    if (dlErr || !photoBlob) throw new Error('Could not load your face photo. Try re-scanning.');
+      .createSignedUrl(photoPath, 600); // 10-min window for HeyGen to fetch
+    if (signErr || !signedData?.signedUrl) throw new Error('Could not access face photo. Try re-scanning.');
+    const photoUrl = signedData.signedUrl;
 
-    // 3. Upload photo to HeyGen as a "talking photo"
-    const photoBuffer = Buffer.from(await photoBlob.arrayBuffer());
-    const form = new FormData();
-    form.append('file', new Blob([photoBuffer], { type: 'image/jpeg' }), 'photo.jpg');
-
-    const uploadRes = await fetch('https://upload.heygen.com/v1/talking_photo', {
-      method: 'POST',
-      headers: { 'X-Api-Key': HEYGEN },
-      body: form,
-    });
-    const uploadData = await uploadRes.json();
-    const talkingPhotoId: string | undefined = uploadData.data?.talking_photo_id;
-    if (!talkingPhotoId) throw new Error(`Photo upload failed: ${JSON.stringify(uploadData)}`);
-
-    // 4. Pick a voice
+    // 3. Pick a voice
     const voiceId = await getPresetVoice();
     if (!voiceId) throw new Error('No voice available from HeyGen');
 
-    // 5. Generate the video
+    // 4. Generate the video — pass photo URL directly as talking_photo_url
     const videoRes = await fetch('https://api.heygen.com/v2/video/generate', {
       method: 'POST',
       headers: { 'X-Api-Key': HEYGEN, 'Content-Type': 'application/json' },
@@ -130,7 +118,7 @@ export async function POST() {
         video_inputs: [{
           character: {
             type: 'talking_photo',
-            talking_photo_id: talkingPhotoId,
+            talking_photo_url: photoUrl,
             scale: 1.0,
             talking_style: 'stable',
           },
