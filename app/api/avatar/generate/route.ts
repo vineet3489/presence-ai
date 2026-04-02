@@ -104,50 +104,74 @@ export async function POST() {
     // 1. Generate script
     const script = await buildScript(archetype, voiceFixes, goal);
 
-    // 2. Get signed URL so HeyGen can fetch the photo
     const admin = createAdminClient();
-    const { data: signedData, error: signErr } = await admin.storage
-      .from('face-scans')
-      .createSignedUrl(photoPath, 600);
-    if (signErr || !signedData?.signedUrl) throw new Error('Could not access face photo. Try re-scanning.');
+    const cachedIdPath = `${user.id}/heygen_photo_id.txt`;
 
-    // 3. Download photo from Supabase, then POST raw binary to HeyGen
-    const photoRes = await fetch(signedData.signedUrl);
-    if (!photoRes.ok) throw new Error('Could not download face photo from storage.');
-    const photoBuffer = Buffer.from(await photoRes.arrayBuffer());
-    const photoMime = photoRes.headers.get('content-type') || 'image/jpeg';
+    // 2. Check for cached talking_photo_id (avoid re-uploading / hitting quota)
+    let talkingPhotoId: string | undefined;
+    try {
+      const { data: cached } = await admin.storage.from('face-scans').download(cachedIdPath);
+      if (cached) talkingPhotoId = (await cached.text()).trim() || undefined;
+    } catch { /* no cache yet */ }
 
-    const uploadRes = await fetch('https://upload.heygen.com/v1/talking_photo', {
-      method: 'POST',
-      headers: { 'X-Api-Key': HEYGEN, 'Content-Type': photoMime },
-      body: photoBuffer,
-    });
-    const uploadText = await uploadRes.text();
-    let uploadData: { code?: number; data?: { talking_photo_id?: string }; message?: string } = {};
-    try { uploadData = JSON.parse(uploadText); } catch {
-      throw new Error(`HeyGen upload returned non-JSON (status ${uploadRes.status}): ${uploadText.slice(0, 200)}`);
+    // 3. If no cached talking_photo_id, try to upload; fall back to named avatar
+    let avatarCharacter: Record<string, unknown>;
+
+    if (!talkingPhotoId) {
+      const { data: signedData, error: signErr } = await admin.storage
+        .from('face-scans').createSignedUrl(photoPath, 600);
+      if (signErr || !signedData?.signedUrl) throw new Error('Could not access face photo. Try re-scanning.');
+
+      const photoRes = await fetch(signedData.signedUrl);
+      if (!photoRes.ok) throw new Error('Could not download face photo from storage.');
+      const photoBuffer = Buffer.from(await photoRes.arrayBuffer());
+      const photoMime = photoRes.headers.get('content-type') || 'image/jpeg';
+
+      const uploadRes = await fetch('https://upload.heygen.com/v1/talking_photo', {
+        method: 'POST',
+        headers: { 'X-Api-Key': HEYGEN, 'Content-Type': photoMime },
+        body: photoBuffer,
+      });
+      const uploadText = await uploadRes.text();
+      let uploadData: { code?: number; data?: { talking_photo_id?: string }; message?: string } = {};
+      try { uploadData = JSON.parse(uploadText); } catch {
+        throw new Error(`HeyGen upload error (${uploadRes.status}): ${uploadText.slice(0, 200)}`);
+      }
+      talkingPhotoId = uploadData.data?.talking_photo_id;
+
+      if (talkingPhotoId) {
+        // Cache for future requests
+        await admin.storage.from('face-scans').upload(
+          cachedIdPath, Buffer.from(talkingPhotoId), { contentType: 'text/plain', upsert: true }
+        );
+      }
     }
-    const talkingPhotoId = uploadData.data?.talking_photo_id;
-    if (!talkingPhotoId) throw new Error(`Photo upload failed: ${JSON.stringify(uploadData)}`);
+
+    if (talkingPhotoId) {
+      avatarCharacter = { type: 'talking_photo', talking_photo_id: talkingPhotoId };
+    } else {
+      // Quota hit or upload failed — find user's named avatar in HeyGen
+      const avatarRes = await fetch('https://api.heygen.com/v2/avatars', { headers: { 'X-Api-Key': HEYGEN } });
+      const avatarData = await avatarRes.json() as { data?: { avatars?: { avatar_id: string; avatar_name: string }[] } };
+      const avatars = avatarData.data?.avatars || [];
+      const nameParts = userName.toLowerCase().split(/\s+/).filter(Boolean);
+      const match = avatars.find(a => nameParts.some(p => a.avatar_name?.toLowerCase().includes(p)))
+        || avatars[0];
+      if (!match) throw new Error('No avatar available. Please delete old photos from your HeyGen account.');
+      avatarCharacter = { type: 'avatar', avatar_id: match.avatar_id, avatar_style: 'normal' };
+    }
 
     // 4. Pick a voice — prefer user's own cloned voice matched by name
     const voiceId = await getPresetVoice(userName);
     if (!voiceId) throw new Error('No voice available from HeyGen');
 
-    // 5. Generate video — character uses nested talking_photo object (HeyGen v2 format)
+    // 5. Generate video
     const videoRes = await fetch('https://api.heygen.com/v2/video/generate', {
       method: 'POST',
       headers: { 'X-Api-Key': HEYGEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         video_inputs: [{
-          character: {
-            type: 'talking_photo',
-            talking_photo: {
-              talking_photo_id: talkingPhotoId,
-              talking_style: 'stable',
-              scale: 1.0,
-            },
-          },
+          character: avatarCharacter,
           voice: {
             type: 'text',
             input_text: script,
