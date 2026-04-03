@@ -84,13 +84,19 @@ export async function POST() {
     supabase.from('user_profiles').select('goals, full_name').eq('user_id', user.id).single(),
   ]);
 
-  const photoPath = (lastScan?.appearance_result as Record<string, unknown>)?.photoStoragePath as string | null;
-  if (!photoPath) {
+  // Prefer the AI-styled "ideal look" image; fall back to raw face scan photo
+  const rawPhotoPath = (lastScan?.appearance_result as Record<string, unknown>)?.photoStoragePath as string | null;
+  if (!rawPhotoPath) {
     return NextResponse.json({
       error: 'no_photo',
       message: 'Do a Face Scan first — we need your photo to build the avatar.',
     }, { status: 400 });
   }
+  const styledLookPath = `${user.id}/last-look.jpg`;
+  // Check if styled look exists, otherwise use raw scan
+  const adminCheck = createAdminClient();
+  const { data: styledExists } = await adminCheck.storage.from('face-scans').list(user.id, { search: 'last-look.jpg' });
+  const photoPath = (styledExists && styledExists.length > 0) ? styledLookPath : rawPhotoPath;
 
   const archetype = ((styleSession?.date_prep_result as Record<string, unknown>)?.data as Record<string, unknown>)?.archetype as string
     || (lastScan?.appearance_result as Record<string, unknown>)?.faceShape as string
@@ -105,7 +111,7 @@ export async function POST() {
     const script = await buildScript(archetype, voiceFixes, goal);
 
     const admin = createAdminClient();
-    const cachedIdPath = `${user.id}/heygen_photo_id.txt`;
+    const cachedIdPath = `${user.id}/heygen_photo_id_${photoPath.replace(/\//g, '_')}.txt`;
 
     // 2. Check for cached talking_photo_id (avoid re-uploading / hitting quota)
     let talkingPhotoId: string | undefined;
