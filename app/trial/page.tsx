@@ -9,25 +9,25 @@ export default async function TrialPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('subscription_status, trial_started_at, subscription_ends_at')
+    .select('subscription_status, trial_started_at, subscription_ends_at, razorpay_subscription_id')
     .eq('user_id', user.id)
     .single();
 
   const status = profile?.subscription_status ?? 'none';
-  const trialStartedAt = profile?.trial_started_at;
-
-  // If user already has valid access, send them into the app
   const now = Date.now();
+
+  // Already has valid access — send them in
   if (status === 'active') {
     const endsAt = profile?.subscription_ends_at;
     if (!endsAt || new Date(endsAt).getTime() > now) redirect('/dashboard');
   }
-  if (status === 'trial' && trialStartedAt) {
-    const trialEnd = new Date(trialStartedAt).getTime() + 3 * 24 * 60 * 60 * 1000;
+  if (status === 'trial' && profile?.trial_started_at) {
+    const trialEnd = new Date(profile.trial_started_at).getTime() + 3 * 24 * 60 * 60 * 1000;
     if (trialEnd > now) redirect('/dashboard');
   }
 
-  const isFirstTrial = status === 'none' || !trialStartedAt;
+  // Offer the 3-day free trial to anyone who has never started a paid subscription
+  const isFirstTrial = !profile?.razorpay_subscription_id;
 
   return <TrialCheckout isFirstTrial={isFirstTrial} />;
 }

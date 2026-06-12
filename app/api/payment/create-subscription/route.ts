@@ -5,7 +5,7 @@ const KEY_ID = process.env.RAZORPAY_KEY_ID!;
 const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET!;
 const rzpAuth = () => 'Basic ' + Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString('base64');
 
-// Cached per cold-start — user should set RAZORPAY_PLAN_ID in env after first run
+// Cached per cold-start — set RAZORPAY_PLAN_ID in Vercel env after first creation (check logs)
 let _cachedPlanId: string | null = null;
 
 async function getOrCreatePlan(): Promise<string> {
@@ -20,18 +20,20 @@ async function getOrCreatePlan(): Promise<string> {
       interval: 1,
       item: {
         name: 'PresenceAI Monthly',
-        amount: 34900,
-        unit_amount: 34900,
+        amount: 34900,   // ₹349 in paise
         currency: 'INR',
-        description: 'Full access to PresenceAI — appearance, voice & date coaching',
+        description: 'Full access to PresenceAI',
       },
     }),
   });
 
-  if (!res.ok) throw new Error(`Plan creation failed: ${await res.text()}`);
-  const data = await res.json() as { id: string };
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Razorpay plan creation failed (${res.status}): ${text}`);
+
+  const data = JSON.parse(text) as { id: string };
   _cachedPlanId = data.id;
-  console.log(`[Razorpay] Created plan ${_cachedPlanId} — add RAZORPAY_PLAN_ID=${_cachedPlanId} to Vercel env vars`);
+  // IMPORTANT: copy this plan ID into Vercel env as RAZORPAY_PLAN_ID to avoid recreating on cold starts
+  console.log(`[Razorpay] Plan created: RAZORPAY_PLAN_ID=${_cachedPlanId}`);
   return _cachedPlanId;
 }
 
@@ -39,15 +41,18 @@ export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!KEY_ID || !KEY_SECRET) return NextResponse.json({ error: 'Razorpay not configured' }, { status: 500 });
+  if (!KEY_ID || !KEY_SECRET) {
+    return NextResponse.json({ error: 'Razorpay keys not configured on server' }, { status: 500 });
+  }
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('subscription_status, trial_started_at, razorpay_subscription_id')
+    .select('razorpay_subscription_id')
     .eq('user_id', user.id)
     .single();
 
-  const isFirstTrial = !profile?.trial_started_at;
+  // Offer trial to anyone who has never completed a Razorpay subscription
+  const isFirstTrial = !profile?.razorpay_subscription_id;
 
   try {
     const planId = await getOrCreatePlan();
@@ -56,12 +61,13 @@ export async function POST() {
       plan_id: planId,
       customer_notify: 1,
       quantity: 1,
-      total_count: 120, // ~10 years of monthly renewals
+      total_count: 120,
       notes: { user_id: user.id },
     };
 
     if (isFirstTrial) {
-      body.trial_length = 3; // 3-day free trial before first charge
+      // start_at = 3 days from now — mandate authorized today, first charge on day 4
+      body.start_at = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60;
     }
 
     const res = await fetch('https://api.razorpay.com/v1/subscriptions', {
@@ -70,16 +76,17 @@ export async function POST() {
       body: JSON.stringify(body),
     });
 
+    const text = await res.text();
     if (!res.ok) {
-      const err = await res.text();
-      console.error('[create-subscription] Razorpay error:', err);
-      return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 });
+      console.error('[create-subscription] Razorpay error:', text);
+      return NextResponse.json({ error: `Razorpay: ${text}` }, { status: 500 });
     }
 
-    const sub = await res.json() as { id: string };
+    const sub = JSON.parse(text) as { id: string };
     return NextResponse.json({ subscriptionId: sub.id, key: KEY_ID, isFirstTrial });
   } catch (err) {
-    console.error('[create-subscription]', err);
-    return NextResponse.json({ error: 'Subscription setup failed' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[create-subscription]', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
