@@ -20,6 +20,7 @@ export interface UserProfile {
   trial_started_at: string | null;
   subscription_status: 'none' | 'trial' | 'active' | 'expired' | null;
   subscription_ends_at: string | null;
+  razorpay_subscription_id: string | null;
   presence_xp: number;
   tip_streak: number;
   last_tip_date: string | null;
