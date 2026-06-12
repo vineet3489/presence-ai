@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 });
     }
 
-    // Fetch user profile for personalization
+    // Fetch user profile for personalization (only what the prompt needs)
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
@@ -35,49 +35,44 @@ export async function POST(request: NextRequest) {
       2000
     );
 
-    // Parse JSON from Claude response
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Could not parse Claude response');
     const result: AppearanceResult = JSON.parse(jsonMatch[0]);
     const score = scoreAppearance(result);
 
-    // Save session to DB
-    const { data: session, error: dbError } = await supabase
-      .from('analysis_sessions')
-      .insert({
-        user_id: user.id,
-        session_type: 'appearance',
-        appearance_result: result,
-        appearance_score: score,
-      })
-      .select()
-      .single();
+    const photoBuffer = Buffer.from(imageBase64, 'base64');
+    const admin = createAdminClient();
+
+    // DB save and photo upload run in parallel — both needed before we can update the session
+    const [{ data: session, error: dbError }, uploadResult] = await Promise.all([
+      supabase
+        .from('analysis_sessions')
+        .insert({ user_id: user.id, session_type: 'appearance', appearance_result: result, appearance_score: score })
+        .select('id')
+        .single(),
+      (async () => {
+        // We don't know session.id yet, use a temp path; renamed below
+        try {
+          // Upload to a temp path — will be renamed once session.id is known
+          const tmpPath = `${user.id}/tmp_${Date.now()}.jpg`;
+          const { error } = await admin.storage.from('face-scans').upload(tmpPath, photoBuffer, { contentType: mediaType, upsert: true });
+          return error ? null : tmpPath;
+        } catch { return null; }
+      })(),
+    ]);
 
     if (dbError) console.error('DB save error:', dbError);
 
-    // Store photo in Supabase Storage for personalized look generation
-    if (session?.id) {
-      try {
-        const admin = createAdminClient();
-        const photoPath = `${user.id}/${session.id}.jpg`;
-        const { error: uploadErr } = await admin.storage
-          .from('face-scans')
-          .upload(photoPath, Buffer.from(imageBase64, 'base64'), {
-            contentType: mediaType,
-            upsert: true,
-          });
-        if (uploadErr) {
-          console.error('Photo storage upload error:', uploadErr);
-        } else {
-          // Update session with photo path so generate-image can retrieve it
-          await admin
-            .from('analysis_sessions')
-            .update({ appearance_result: { ...result, photoStoragePath: photoPath } })
-            .eq('id', session.id);
-        }
-      } catch (e) {
-        console.error('Photo storage error (non-fatal):', e);
-      }
+    // Fire-and-forget: rename temp file to canonical path and update session record
+    if (session?.id && uploadResult) {
+      const photoPath = `${user.id}/${session.id}.jpg`;
+      Promise.all([
+        admin.storage.from('face-scans').move(uploadResult, photoPath),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (admin as any).from('analysis_sessions')
+          .update({ appearance_result: { ...result, photoStoragePath: photoPath } })
+          .eq('id', session.id),
+      ]).catch(e => console.error('Photo finalize error (non-fatal):', e));
     }
 
     return NextResponse.json({ result, score, sessionId: session?.id });

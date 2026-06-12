@@ -55,10 +55,9 @@ function SkinToneChip({ tone }: { tone: string }) {
 }
 
 function Tip({ text, accent }: { text: string; accent: string }) {
-  // Extract first ~8 words as a punchy headline, rest as context
   const words = text.split(' ');
-  const headline = words.slice(0, 7).join(' ');
-  const rest = words.slice(7).join(' ');
+  const headline = words.slice(0, 5).join(' ');
+  const rest = words.slice(5).join(' ');
   return (
     <div className="flex gap-3 px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors">
       <div className="w-1 shrink-0 rounded-full mt-1" style={{ background: accent, minHeight: '1.2rem' }} />
@@ -172,13 +171,13 @@ export function AppearanceResults({ result, score }: Props) {
         <TabsContent value="face" className="space-y-3 mt-4">
           <p className="text-xs font-bold uppercase tracking-widest text-violet-400">Hairstyle</p>
           <div className="space-y-2">
-            {result.hairstyleRecommendations.map((tip, i) => (
+            {result.hairstyleRecommendations.slice(0, 1).map((tip, i) => (
               <Tip key={i} text={tip} accent="#8b5cf6" />
             ))}
           </div>
           <p className="text-xs font-bold uppercase tracking-widest text-violet-300 pt-1">Expression</p>
           <div className="space-y-2">
-            {result.expressionTips.map((tip, i) => (
+            {result.expressionTips.slice(0, 1).map((tip, i) => (
               <Tip key={i} text={tip} accent="#a78bfa" />
             ))}
           </div>
@@ -186,7 +185,7 @@ export function AppearanceResults({ result, score }: Props) {
             <>
               <p className="text-xs font-bold uppercase tracking-widest text-violet-500 pt-1">Grooming</p>
               <div className="space-y-2">
-                {result.groomingTips.map((tip, i) => (
+                {result.groomingTips.slice(0, 1).map((tip, i) => (
                   <Tip key={i} text={tip} accent="#6d28d9" />
                 ))}
               </div>
@@ -215,7 +214,7 @@ export function AppearanceResults({ result, score }: Props) {
           </div>
           <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 pt-1">Fix These</p>
           <div className="space-y-2">
-            {result.postureCorrections.map((tip, i) => (
+            {result.postureCorrections.slice(0, 2).map((tip, i) => (
               <Tip key={i} text={tip} accent="#059669" />
             ))}
           </div>

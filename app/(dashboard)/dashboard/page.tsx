@@ -15,7 +15,7 @@ import type { AnalysisSession, AppearanceResult, VoiceResult } from '@/types';
 function shortFix(text: string): string {
   const cleaned = text.replace(/^(consider|try to|make sure to|you should|it would help to|aim to)\s+/i, '');
   const words = cleaned.split(' ');
-  return (words.length > 9 ? words.slice(0, 9).join(' ') + '…' : cleaned);
+  return (words.length > 6 ? words.slice(0, 6).join(' ') + '…' : cleaned);
 }
 
 function extractFixes(
@@ -29,14 +29,14 @@ function extractFixes(
     ar?.hairstyleRecommendations?.[0] && { icon: '◎', label: 'Hair', text: shortFix(ar.hairstyleRecommendations[0]), link: '/face-scan', color: 'text-pink-400'   },
     ar?.expressionTips?.[0]   && { icon: '◇', label: 'Expression', text: shortFix(ar.expressionTips[0]),          link: '/face-scan',   color: 'text-emerald-400'},
   ].filter(Boolean) as { icon: string; label: string; text: string; link: string; color: string }[];
-  return candidates.slice(0, 4);
+  return candidates.slice(0, 3);
 }
 
-function goalHeadline(goal: string): { title: string; sub: string } {
-  if (goal?.includes('date')) return { title: 'Fix these to get more dates', sub: 'Ranked by impact on attraction & connection' };
-  if (goal?.includes('confident') || goal?.includes('confidence')) return { title: 'What will make you more commanding', sub: 'Ranked by impact on how others perceive you' };
-  if (goal?.includes('put-together')) return { title: 'Your style upgrade priorities', sub: 'Quick wins for a sharper first impression' };
-  return { title: 'Your action plan this week', sub: 'Based on your latest scans' };
+function goalHeadline(goal: string): string {
+  if (goal?.includes('date')) return 'Fix these first';
+  if (goal?.includes('confident') || goal?.includes('confidence')) return 'Top 3 to fix';
+  if (goal?.includes('put-together')) return 'Quick wins';
+  return 'This week';
 }
 
 export default async function DashboardPage() {
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
     appearanceSession?.appearance_result ?? null,
     voiceSession?.voice_result ?? null
   );
-  const { title: fixTitle, sub: fixSub } = goalHeadline(goal);
+  const fixTitle = goalHeadline(goal);
 
   // Last generated look
   let lastLookUrl: string | null = null;
@@ -117,8 +117,7 @@ export default async function DashboardPage() {
           <Zap size={15} className="text-amber-400" />
           <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Action Plan</span>
         </div>
-        <p className="text-white font-bold text-base mb-0.5">{fixTitle}</p>
-        <p className="text-slate-500 text-xs mb-4">{fixSub}</p>
+        <p className="text-white font-bold text-base mb-3">{fixTitle}</p>
 
         {fixes.length > 0 ? (
           <div className="space-y-2">

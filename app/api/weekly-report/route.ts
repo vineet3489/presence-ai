@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { callClaude } from '@/lib/claude/client';
 import { WEEKLY_REPORT_SYSTEM_PROMPT, buildWeeklyReportPrompt } from '@/lib/claude/prompts';
 import { createClient } from '@/lib/supabase/server';
-import type { AnalysisSession } from '@/types';
+type ScoreRow = { appearance_score: number | null; voice_score: number | null; social_score: number | null };
 
 function avg(values: (number | null)[]): number | null {
   const valid = values.filter((v): v is number => v !== null);
@@ -21,12 +21,12 @@ export async function GET() {
   const [{ data: thisWeekSessions }, { data: lastWeekSessions }, { data: profile }] = await Promise.all([
     supabase
       .from('analysis_sessions')
-      .select('*')
+      .select('appearance_score, voice_score, social_score')
       .eq('user_id', user.id)
       .gte('created_at', weekAgo.toISOString()),
     supabase
       .from('analysis_sessions')
-      .select('*')
+      .select('appearance_score, voice_score, social_score')
       .eq('user_id', user.id)
       .gte('created_at', twoWeeksAgo.toISOString())
       .lt('created_at', weekAgo.toISOString()),
@@ -37,8 +37,8 @@ export async function GET() {
       .single(),
   ]);
 
-  const tw = (thisWeekSessions || []) as AnalysisSession[];
-  const lw = (lastWeekSessions || []) as AnalysisSession[];
+  const tw = (thisWeekSessions || []) as ScoreRow[];
+  const lw = (lastWeekSessions || []) as ScoreRow[];
 
   const reportData = {
     weekAvgAppearance: avg(tw.map((s) => s.appearance_score)),
