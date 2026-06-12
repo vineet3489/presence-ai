@@ -84,7 +84,8 @@ export async function POST() {
     supabase.from('user_profiles').select('goals, full_name').eq('user_id', user.id).single(),
   ]);
 
-  // Prefer the AI-styled "ideal look" image; fall back to raw face scan photo
+  // Always use the raw face scan photo — HeyGen talking_photo requires a real face photo,
+  // not an AI-generated styled image (which causes frozen/static output).
   const rawPhotoPath = (lastScan?.appearance_result as Record<string, unknown>)?.photoStoragePath as string | null;
   if (!rawPhotoPath) {
     return NextResponse.json({
@@ -92,11 +93,7 @@ export async function POST() {
       message: 'Do a Face Scan first — we need your photo to build the avatar.',
     }, { status: 400 });
   }
-  const styledLookPath = `${user.id}/last-look.jpg`;
-  // Check if styled look exists, otherwise use raw scan
-  const adminCheck = createAdminClient();
-  const { data: styledExists } = await adminCheck.storage.from('face-scans').list(user.id, { search: 'last-look.jpg' });
-  const photoPath = (styledExists && styledExists.length > 0) ? styledLookPath : rawPhotoPath;
+  const photoPath = rawPhotoPath;
 
   const archetype = ((styleSession?.date_prep_result as Record<string, unknown>)?.data as Record<string, unknown>)?.archetype as string
     || (lastScan?.appearance_result as Record<string, unknown>)?.faceShape as string
