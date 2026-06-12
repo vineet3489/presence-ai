@@ -9,8 +9,8 @@ export async function POST() {
 
   // Initialise inside handler so missing env vars don't crash the module at build time
   const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    key_id: (process.env.RAZORPAY_KEY_ID ?? '').trim(),
+    key_secret: (process.env.RAZORPAY_KEY_SECRET ?? '').trim(),
   });
 
   try {

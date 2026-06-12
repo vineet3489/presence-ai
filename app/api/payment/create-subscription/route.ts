@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-const KEY_ID = process.env.RAZORPAY_KEY_ID!;
-const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET!;
+const KEY_ID = (process.env.RAZORPAY_KEY_ID ?? '').trim();
+const KEY_SECRET = (process.env.RAZORPAY_KEY_SECRET ?? '').trim();
 const rzpAuth = () => 'Basic ' + Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString('base64');
 
 // Cached per cold-start — set RAZORPAY_PLAN_ID in Vercel env after first creation (check logs)

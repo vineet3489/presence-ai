@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   // Signature for subscriptions: HMAC(payment_id + "|" + subscription_id)
   const expected = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+    .createHmac('sha256', (process.env.RAZORPAY_KEY_SECRET ?? '').trim())
     .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
     .digest('hex');
 
