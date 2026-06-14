@@ -9,7 +9,7 @@ export default async function TrialPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('subscription_status, trial_started_at, subscription_ends_at, razorpay_subscription_id')
+    .select('subscription_status, trial_started_at, subscription_ends_at')
     .eq('user_id', user.id)
     .single();
 
@@ -26,8 +26,9 @@ export default async function TrialPage() {
     if (trialEnd > now) redirect('/dashboard');
   }
 
-  // Offer the 3-day free trial to anyone who has never started a paid subscription
-  const isFirstTrial = !profile?.razorpay_subscription_id;
+  // First trial = never started before (status is 'none')
+  // Returning/expired user sees subscribe screen (no extra free trial)
+  const isFirstTrial = status === 'none' || status === null;
 
   return <TrialCheckout isFirstTrial={isFirstTrial} />;
 }

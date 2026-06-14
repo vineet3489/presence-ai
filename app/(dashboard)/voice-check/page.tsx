@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
-import { SubscriptionBanner } from '@/components/payment/SubscriptionBanner';
 import { Button } from '@/components/ui/button';
 import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -131,7 +130,6 @@ export default function VoiceCheckPage() {
           <Button variant="outline" onClick={reset} className="w-full gap-2">
             <RotateCcw size={16} /> Record Again
           </Button>
-          <SubscriptionBanner />
         </div>
       ) : (
         <div className="space-y-6">
