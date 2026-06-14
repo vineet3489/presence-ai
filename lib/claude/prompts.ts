@@ -9,7 +9,7 @@ RULES:
 - For colors: give the exact color name AND a specific garment (e.g. "burnt sienna — wear this as a relaxed linen shirt, it'll make your skin glow against it").
 - For grooming: be specific about what you see that needs attention, not generic advice.
 - For expression tips: reference what their expression actually communicates in this photo.
-- overallCoaching: 2-3 punchy paragraphs. Speak directly to them. Make them feel seen.
+- overallCoaching: ALWAYS open with one specific genuine compliment about what's already working (face structure, skin tone, something they're doing right). Use their name if you know it. Then give 1-2 punchy sentences of what to change. Max 3 sentences total. Never start with a negative.
 
 Always respond with a valid JSON object matching this exact structure:
 {
@@ -28,19 +28,17 @@ Always respond with a valid JSON object matching this exact structure:
 export function buildAppearancePrompt(profile: UserProfile | null): string {
   const goalsList = profile?.goals?.join(', ') || 'look and feel more confident';
   const stylePreference = profile?.style_preference || 'smart-casual';
+  const age = profile?.age;
+  const city = profile?.city;
 
-  return `Analyze this photo carefully. The person's style preference is "${stylePreference}" and their goals are: ${goalsList}.
+  const context = [
+    age && `${age} years old`,
+    city && `based in ${city}`,
+  ].filter(Boolean).join(', ');
 
-Please examine:
-1. Face shape and features
-2. Skin tone and undertone
-3. Current hairstyle and what would suit them better
-4. Expression and approachability
-5. Posture (if full body is visible)
-6. Clothing colors and how they complement their complexion
-7. Any grooming observations
+  return `Analyze this photo.${context ? ` Context about this person: ${context}.` : ''} Style preference: "${stylePreference}". Goals: ${goalsList}.
 
-Give specific, personalized recommendations. Name actual hairstyles. Name actual colors (not just "warm tones" — say "terracotta, olive green, warm burgundy"). Be a real stylist speaking to a real person.`;
+Examine face shape, skin tone, hairstyle, expression, posture (if visible), clothing colors, grooming. Be specific — name exact hairstyles, exact colors (e.g. "terracotta linen shirt"), exact grooming observations. Address them by name if you have it.`;
 }
 
 export const VOICE_SYSTEM_PROMPT = `You are PresenceAI — a no-nonsense vocal coach who genuinely cares. You've read every word of their transcript. You call things out directly using their exact words as evidence. You make people feel like you were actually in the room listening.
@@ -51,7 +49,7 @@ RULES:
 - strengthsList: quote something they actually said that worked well.
 - improvementsList: name the exact pattern with evidence from their words.
 - exercises: each must be a specific drill with exact words or sentences to practice out loud. Not "practice pausing" — say "Read this sentence aloud, pause for 2 full seconds at the comma: 'I build things, and I'm proud of that.'"
-- overallCoaching: 2-3 paragraphs. Make them feel you actually listened to every word.
+- overallCoaching: ALWAYS open with one specific genuine compliment — something they actually said well, or the energy/clarity they brought. Use their name if you have it. Then max 2 sentences on what to fix. Never lead with a negative. Total: max 3 sentences.
 
 Always respond with a valid JSON object matching this exact structure:
 {
@@ -67,10 +65,13 @@ Always respond with a valid JSON object matching this exact structure:
   "overallCoaching": "string (2-3 personal paragraphs referencing what they actually said)"
 }`;
 
-export function buildVoicePrompt(data: VoiceData): string {
+export function buildVoicePrompt(data: VoiceData, profile?: { age?: number | null; city?: string | null } | null): string {
   const wpm = Math.round((data.transcript.split(' ').length / data.durationSeconds) * 60);
+  const age = profile?.age;
+  const city = profile?.city;
+  const context = [age && `${age} years old`, city && `based in ${city}`].filter(Boolean).join(', ');
 
-  return `Analyze this speech transcript. The person spoke for ${data.durationSeconds} seconds (~${wpm} words per minute).
+  return `Analyze this speech transcript.${context ? ` About this person: ${context}.` : ''} They spoke for ${data.durationSeconds} seconds (~${wpm} wpm).
 
 Transcript:
 """

@@ -96,7 +96,7 @@ function VerdictCard({ text }: { text: string }) {
     .filter(Boolean);
 
   const verdict = sentences[0] ?? text;
-  const insights = sentences.slice(1);
+  const insights = sentences.slice(1, 3); // max 2 follow-up bullets
 
   return (
     <div className="space-y-3">

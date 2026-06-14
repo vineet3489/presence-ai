@@ -1,26 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Eye, XCircle, Wand2, Download } from 'lucide-react';
+import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Wand2, Download, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 
 interface StyleProfile {
   archetype: string;
   archetypeDescription: string;
-  colorPalette: {
-    primary: string[];
-    accent: string[];
-    avoid: string[];
-  };
-  signatureOutfits: {
-    occasion: string;
-    outfit: string;
-    why: string;
-  }[];
+  colorPalette: { primary: string[]; accent: string[]; avoid: string[] };
+  signatureOutfits: { occasion: string; outfit: string }[];
   hairAdvice: string;
   grooming: string;
-  presenceTip: string;
-  whatToAvoid: string[];
 }
 
 const COLOR_BG: Record<string, string> = {
@@ -36,7 +28,7 @@ function ColorSwatch({ color }: { color: string }) {
   const bg = COLOR_BG[lower] || '#4c1d95';
   return (
     <div className="flex items-center gap-2">
-      <div className="w-4 h-4 rounded-full shrink-0 border border-slate-700" style={{ backgroundColor: bg }} />
+      <div className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-700" style={{ backgroundColor: bg }} />
       <span className="text-sm text-slate-300">{color}</span>
     </div>
   );
@@ -47,13 +39,31 @@ export default function StyleProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-
-  // Image generation state
+  const [lookSrc, setLookSrc] = useState<string | null>(null);
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
-  const [noScan, setNoScan] = useState(false);
-  // src can be a data URI (freshly generated) or a signed URL (loaded from storage)
-  const [lookSrc, setLookSrc] = useState<string | null>(null);
+  const [scanGate, setScanGate] = useState<{ needsFace: boolean; needsVoice: boolean } | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    Promise.all([
+      supabase.from('analysis_sessions').select('id').eq('session_type', 'appearance').limit(1).single(),
+      supabase.from('analysis_sessions').select('id').eq('session_type', 'voice').limit(1).single(),
+    ]).then(([face, voice]) => {
+      const needsFace = !face.data;
+      const needsVoice = !voice.data;
+      if (needsFace || needsVoice) {
+        setScanGate({ needsFace, needsVoice });
+        setLoading(false);
+      } else {
+        fetchProfile();
+        fetch('/api/style-profile/last-look').then(r => r.json()).then(({ url }) => {
+          if (url) setLookSrc(url);
+        }).catch(() => {});
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function fetchProfile(force = false) {
     force ? setRefreshing(true) : setLoading(true);
@@ -71,19 +81,10 @@ export default function StyleProfilePage() {
     }
   }
 
-  // Load previously stored look on mount
-  useEffect(() => {
-    fetch('/api/style-profile/last-look')
-      .then(r => r.json())
-      .then(({ url }) => { if (url) setLookSrc(url); })
-      .catch(() => {});
-  }, []);
-
   async function generateLook() {
     if (!profile) return;
     setGenLoading(true);
     setGenError('');
-    setNoScan(false);
     try {
       const res = await fetch('/api/style-profile/generate-image', {
         method: 'POST',
@@ -91,10 +92,7 @@ export default function StyleProfilePage() {
         body: JSON.stringify({ styleProfile: profile }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        if (data.error === 'no_scan') { setNoScan(true); return; }
-        throw new Error(data.error || data.message || 'Generation failed');
-      }
+      if (!res.ok) throw new Error(data.error || data.message || 'Generation failed');
       setLookSrc(`data:${data.mimeType};base64,${data.imageBase64}`);
     } catch (err) {
       setGenError(err instanceof Error ? err.message : 'Image generation failed');
@@ -105,39 +103,57 @@ export default function StyleProfilePage() {
 
   async function downloadImage() {
     if (!lookSrc) return;
-    // If it's a signed URL, fetch and convert to blob for download
     if (lookSrc.startsWith('http')) {
       const res = await fetch(lookSrc);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = 'my-ideal-look.jpg';
-      link.click();
+      link.href = url; link.download = 'my-ideal-look.jpg'; link.click();
       URL.revokeObjectURL(url);
     } else {
       const link = document.createElement('a');
-      link.href = lookSrc;
-      link.download = 'my-ideal-look.png';
-      link.click();
+      link.href = lookSrc; link.download = 'my-ideal-look.png'; link.click();
     }
   }
 
-  useEffect(() => { fetchProfile(); }, []);
+  if (scanGate) {
+    return (
+      <div className="p-6 max-w-lg mx-auto pt-20 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-violet-900/30 border border-violet-700/40 flex items-center justify-center mx-auto mb-5">
+          <Lock size={24} className="text-violet-400" />
+        </div>
+        <h1 className="text-2xl font-black text-white mb-2">Complete your scans first</h1>
+        <p className="text-slate-400 text-sm mb-8">
+          Style Profile uses both your face scan and voice check to build something accurate. Complete both to unlock it.
+        </p>
+        <div className="flex flex-col gap-3">
+          {scanGate.needsFace && (
+            <Link href="/face-scan">
+              <Button className="w-full bg-violet-600 hover:bg-violet-500">Do Face Scan →</Button>
+            </Link>
+          )}
+          {scanGate.needsVoice && (
+            <Link href="/voice-check">
+              <Button variant="outline" className="w-full">Do Voice Check →</Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="p-6 max-w-2xl mx-auto flex flex-col items-center justify-center py-24 gap-4">
-        <Loader2 size={32} className="animate-spin text-violet-400" />
+      <div className="p-6 max-w-lg mx-auto flex flex-col items-center justify-center py-24 gap-3">
+        <Loader2 size={28} className="animate-spin text-violet-400" />
         <p className="text-slate-400 text-sm">Building your style profile…</p>
-        <p className="text-slate-600 text-xs">Takes about 10 seconds</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-2xl mx-auto py-16 text-center">
+      <div className="p-6 max-w-lg mx-auto py-16 text-center">
         <p className="text-red-400 text-sm mb-4">{error}</p>
         <Button variant="outline" onClick={() => fetchProfile()}>Try Again</Button>
       </div>
@@ -147,187 +163,97 @@ export default function StyleProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-2">
-            <Sparkles size={24} className="text-violet-400" />
-            Style Profile
-          </h1>
-          <p className="text-slate-400 mt-1 text-sm">Your personal archetype & style blueprint</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => fetchProfile(true)} disabled={refreshing} className="shrink-0">
-          {refreshing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+    <div className="p-4 md:p-8 max-w-lg mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <Sparkles size={20} className="text-violet-400" /> Style Profile
+        </h1>
+        <Button variant="outline" size="sm" onClick={() => fetchProfile(true)} disabled={refreshing}>
+          {refreshing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
         </Button>
       </div>
 
-      {/* Archetype card */}
-      <div className="rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-900/30 to-slate-900/50 p-6">
-        <div className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-2">Your Archetype</div>
-        <h2 className="text-2xl font-black text-white mb-3">{profile.archetype}</h2>
+      {/* Archetype */}
+      <div className="rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-900/30 to-slate-900/50 p-5">
+        <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-1">Your Archetype</p>
+        <h2 className="text-xl font-black text-white mb-2">{profile.archetype}</h2>
         <p className="text-slate-300 text-sm leading-relaxed">{profile.archetypeDescription}</p>
       </div>
 
-      {/* AI Look Generator */}
-      <div className="rounded-2xl border border-violet-800/50 bg-slate-900/60 overflow-hidden">
-        <div className="p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <Wand2 size={16} className="text-violet-400" />
-            <h3 className="text-sm font-semibold text-white">See Your Ideal Look</h3>
-            <span className="text-xs bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI Generated</span>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">
-            Generate a visual of how you'd look in your ideal archetype outfit — based on your face scan + style profile.
-          </p>
-
-          {lookSrc ? (
-            <div className="space-y-3">
-              <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-700">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={lookSrc}
-                  alt="Your ideal look"
-                  className="w-full object-cover"
-                />
-              </div>
-              <div className="flex gap-3">
-                <Button variant="outline" size="sm" onClick={downloadImage} className="gap-2 flex-1">
-                  <Download size={14} /> Save Image
-                </Button>
-                <Button variant="outline" size="sm" onClick={generateLook} disabled={genLoading} className="flex-1 gap-2">
-                  {genLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                  Regenerate
-                </Button>
-              </div>
-              <p className="text-xs text-slate-600 text-center">
-                AI-generated style inspiration — not your exact likeness
-              </p>
-            </div>
-          ) : (
-            <>
-              {noScan ? (
-                <div className="rounded-xl border border-amber-800/40 bg-amber-900/15 p-4 text-center">
-                  <p className="text-sm text-amber-300 font-medium mb-1">Face Scan required</p>
-                  <p className="text-xs text-slate-400 mb-3">
-                    We need your face scan data to generate a look that&apos;s actually based on you — not a random person.
-                  </p>
-                  <a href="/face-scan" className="inline-flex items-center gap-1.5 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded-lg px-4 py-2 transition-colors">
-                    Go do a Face Scan →
-                  </a>
-                </div>
-              ) : (
-                <>
-                  {genError && <p className="text-xs text-red-400 mb-3">{genError}</p>}
-                  <Button
-                    onClick={generateLook}
-                    disabled={genLoading}
-                    className="w-full bg-violet-600 hover:bg-violet-500 gap-2"
-                  >
-                    {genLoading ? (
-                      <><Loader2 size={15} className="animate-spin" /> Generating your look… (~15s)</>
-                    ) : (
-                      <><Wand2 size={15} /> Generate My Ideal Look</>
-                    )}
-                  </Button>
-                </>
-              )}
-            </>
-          )}
+      {/* AI Look */}
+      <div className="rounded-2xl border border-violet-800/50 bg-slate-900/60 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Wand2 size={14} className="text-violet-400" />
+          <span className="text-sm font-semibold text-white">Your Ideal Look</span>
+          <span className="text-[10px] bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI</span>
         </div>
+        {lookSrc ? (
+          <div className="space-y-3">
+            <div className="rounded-xl overflow-hidden border border-slate-700">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lookSrc} alt="Your ideal look" className="w-full object-cover" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={downloadImage} className="gap-1.5 flex-1">
+                <Download size={13} /> Save
+              </Button>
+              <Button variant="outline" size="sm" onClick={generateLook} disabled={genLoading} className="flex-1 gap-1.5">
+                {genLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                Regenerate
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {genError && <p className="text-xs text-red-400 mb-2">{genError}</p>}
+            <Button onClick={generateLook} disabled={genLoading} className="w-full bg-violet-600 hover:bg-violet-500 gap-2">
+              {genLoading ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : <><Wand2 size={14} /> Generate My Look</>}
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* Color palette */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Palette size={16} className="text-violet-400" />
-          <h3 className="text-sm font-semibold text-white">Your Color Palette</h3>
+      {/* Colors */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Palette size={14} className="text-violet-400" />
+          <span className="text-sm font-semibold text-white">Your Colors</span>
         </div>
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Core colors</p>
-            <div className="space-y-2">
-              {profile.colorPalette.primary.map((c, i) => <ColorSwatch key={i} color={c} />)}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Accent / pop</p>
-            <div className="space-y-2">
-              {profile.colorPalette.accent.map((c, i) => <ColorSwatch key={i} color={c} />)}
-            </div>
-          </div>
-          {profile.colorPalette.avoid?.length > 0 && (
-            <div className="rounded-lg bg-red-900/10 border border-red-800/30 px-4 py-3">
-              <p className="text-xs text-red-400 font-medium mb-1">Avoid</p>
-              {profile.colorPalette.avoid.map((c, i) => (
-                <p key={i} className="text-xs text-slate-400">{c}</p>
-              ))}
-            </div>
-          )}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          {[...profile.colorPalette.primary, ...profile.colorPalette.accent].map((c, i) => (
+            <ColorSwatch key={i} color={c} />
+          ))}
         </div>
+        {profile.colorPalette.avoid?.length > 0 && (
+          <p className="text-xs text-red-400/70 mt-3">Avoid: {profile.colorPalette.avoid.join(', ')}</p>
+        )}
       </div>
 
-      {/* Signature outfits */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Shirt size={16} className="text-violet-400" />
-          <h3 className="text-sm font-semibold text-white">Signature Outfits</h3>
+      {/* Outfits */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Shirt size={14} className="text-violet-400" />
+          <span className="text-sm font-semibold text-white">Signature Looks</span>
         </div>
         {profile.signatureOutfits.map((o, i) => (
-          <div key={i} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-            <div className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-1">{o.occasion}</div>
-            <p className="text-sm text-white leading-relaxed mb-2">{o.outfit}</p>
-            <p className="text-xs text-slate-500 italic">{o.why}</p>
+          <div key={i} className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+            <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider mb-1">{o.occasion}</p>
+            <p className="text-sm text-white">{o.outfit}</p>
           </div>
         ))}
       </div>
 
-      {/* Hair & grooming */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
+      {/* Hair & Grooming */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 space-y-2">
         <div className="flex items-center gap-2 mb-1">
-          <Scissors size={16} className="text-violet-400" />
-          <h3 className="text-sm font-semibold text-white">Hair & Grooming</h3>
+          <Scissors size={14} className="text-violet-400" />
+          <span className="text-sm font-semibold text-white">Hair & Grooming</span>
         </div>
-        <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hair direction</p>
-          <p className="text-sm text-slate-300 leading-relaxed">{profile.hairAdvice}</p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Grooming priorities</p>
-          <p className="text-sm text-slate-300 leading-relaxed">{profile.grooming}</p>
-        </div>
+        <p className="text-sm text-slate-300">{profile.hairAdvice}</p>
+        <p className="text-sm text-slate-400">{profile.grooming}</p>
       </div>
 
-      {/* Presence tip */}
-      <div className="rounded-2xl border border-sky-800/40 bg-sky-900/15 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Eye size={16} className="text-sky-400" />
-          <h3 className="text-sm font-semibold text-sky-300">Your Presence Edge</h3>
-        </div>
-        <p className="text-sm text-slate-300 leading-relaxed">{profile.presenceTip}</p>
-      </div>
-
-      {/* What to avoid */}
-      {profile.whatToAvoid?.length > 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <XCircle size={16} className="text-slate-500" />
-            <h3 className="text-sm font-semibold text-slate-400">Stop Doing This</h3>
-          </div>
-          <ul className="space-y-2">
-            {profile.whatToAvoid.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
-                <span className="text-red-500 shrink-0 mt-0.5">×</span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <p className="text-xs text-slate-600 text-center pb-4">
-        Profile refreshes weekly · Image generation requires a Face Scan
-      </p>
+      <p className="text-xs text-slate-600 text-center pb-2">Refreshes weekly · Built from your scans</p>
     </div>
   );
 }

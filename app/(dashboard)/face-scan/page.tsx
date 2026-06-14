@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
+import { SubscriptionBanner } from '@/components/payment/SubscriptionBanner';
 import { Button } from '@/components/ui/button';
 import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -139,6 +140,7 @@ export default function FaceScanPage() {
           <Button variant="outline" onClick={reset} className="w-full gap-2">
             <RotateCcw size={16} /> Scan Again
           </Button>
+          <SubscriptionBanner />
         </div>
       ) : (
         <div className="space-y-6">

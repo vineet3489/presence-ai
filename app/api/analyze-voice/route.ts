@@ -19,8 +19,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Transcript is required' }, { status: 400 });
     }
 
-    const voiceData = { transcript, durationSeconds: durationSeconds || 60 };
-    const prompt = buildVoicePrompt(voiceData);
+    const [voiceData, { data: profile }] = await Promise.all([
+      Promise.resolve({ transcript, durationSeconds: durationSeconds || 60 }),
+      supabase.from('user_profiles').select('age, city').eq('user_id', user.id).single(),
+    ]);
+    const prompt = buildVoicePrompt(voiceData, profile);
     const raw = await callClaude(VOICE_SYSTEM_PROMPT, prompt, 2000);
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
         voice_result: result,
         voice_score: score,
       })
-      .select()
+      .select('id')
       .single();
 
     return NextResponse.json({ result, score, sessionId: session?.id });

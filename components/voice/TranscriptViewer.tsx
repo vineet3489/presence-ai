@@ -62,9 +62,9 @@ function CompactItem({ text, positive }: { text: string; positive: boolean }) {
 function VerdictCard({ text }: { text: string }) {
   const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
   const verdict = sentences[0] ?? text;
-  const insights = sentences.slice(1);
+  const insights = sentences.slice(1, 3); // max 2 follow-up bullets
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="rounded-2xl bg-gradient-to-br from-sky-950/60 to-slate-900 border border-sky-700/40 p-5">
         <p className="text-xs text-sky-400 font-semibold uppercase tracking-widest mb-2">The Verdict</p>
         <p className="text-white text-base font-semibold leading-relaxed">{verdict}</p>
@@ -138,12 +138,12 @@ export function TranscriptViewer({ result, score }: Props) {
           {result.strengthsList.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Working for you</p>
-              {result.strengthsList.map((s, i) => <CompactItem key={i} text={s} positive={true} />)}
+              {result.strengthsList.slice(0, 1).map((s, i) => <CompactItem key={i} text={s} positive={true} />)}
             </div>
           )}
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-widest text-amber-400">Fix these</p>
-            {result.improvementsList.map((s, i) => <CompactItem key={i} text={s} positive={false} />)}
+            {result.improvementsList.slice(0, 2).map((s, i) => <CompactItem key={i} text={s} positive={false} />)}
           </div>
         </TabsContent>
 

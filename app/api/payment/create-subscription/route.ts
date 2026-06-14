@@ -16,11 +16,11 @@ async function getOrCreatePlan(): Promise<string> {
     method: 'POST',
     headers: { Authorization: rzpAuth(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      period: 'monthly',
+      period: 'weekly',
       interval: 1,
       item: {
-        name: 'PresenceAI Monthly',
-        amount: 34900,   // ₹349 in paise
+        name: 'PresenceAI Weekly',
+        amount: 7900,   // ₹79 in paise
         currency: 'INR',
         description: 'Full access to PresenceAI',
       },
