@@ -8,6 +8,19 @@ import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client';
 import type { AppearanceResult } from '@/types';
 
+function ScanPhoto({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    fetch(`/api/face-scan/signed-url?path=${encodeURIComponent(path)}`)
+      .then(r => r.json()).then(({ url }) => { if (url) setUrl(url); }).catch(() => {});
+  }, [path]);
+  if (!url) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt="Face scan" className="w-full rounded-lg object-cover max-h-56 border border-slate-700" />
+  );
+}
+
 type State = 'loading' | 'idle' | 'captured' | 'analyzing' | 'done' | 'error';
 
 interface SessionSnap {
@@ -57,7 +70,7 @@ export default function FaceScanPage() {
           } else {
             setState('idle');
           }
-          setHistory(rest.filter(s => s.appearance_result));
+          setHistory(rest.filter(s => s.appearance_result).slice(0, 5));
         } else {
           setState('idle');
         }
@@ -218,18 +231,15 @@ export default function FaceScanPage() {
                   </button>
 
                   {expandedId === s.id && s.appearance_result && (
-                    <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-2">
+                    <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
+                      {s.appearance_result.photoStoragePath && (
+                        <ScanPhoto path={s.appearance_result.photoStoragePath} />
+                      )}
                       <p className="text-xs text-slate-400 leading-relaxed">{s.appearance_result.overallCoaching}</p>
                       {s.appearance_result.hairstyleRecommendations?.length > 0 && (
                         <div>
-                          <p className="text-xs text-slate-500 font-medium mb-1">Hairstyle recommendations:</p>
-                          <ul className="space-y-0.5">
-                            {s.appearance_result.hairstyleRecommendations.slice(0, 2).map((r, i) => (
-                              <li key={i} className="text-xs text-slate-400 flex gap-1.5">
-                                <span className="text-violet-400">→</span> {r}
-                              </li>
-                            ))}
-                          </ul>
+                          <p className="text-xs text-slate-500 font-medium mb-1">Hair:</p>
+                          <p className="text-xs text-slate-400">{s.appearance_result.hairstyleRecommendations[0]}</p>
                         </div>
                       )}
                     </div>

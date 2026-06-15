@@ -116,6 +116,7 @@ export interface AppearanceResult {
   postureCorrections: string[];
   expressionTips: string[];
   overallCoaching: string;
+  photoStoragePath?: string | null;
 }
 
 export interface VoiceData {
@@ -134,6 +135,7 @@ export interface VoiceResult {
   improvementsList: string[];
   exercises: string[];
   overallCoaching: string;
+  audioStoragePath?: string | null;
 }
 
 export interface DatePrepData {

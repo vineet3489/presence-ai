@@ -26,6 +26,16 @@ interface SessionSnap {
   created_at: string;
 }
 
+function AudioPlayer({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    fetch(`/api/face-scan/signed-url?path=${encodeURIComponent(path)}`)
+      .then(r => r.json()).then(({ url }) => { if (url) setUrl(url); }).catch(() => {});
+  }, [path]);
+  if (!url) return <p className="text-xs text-slate-600">Loading audio…</p>;
+  return <audio src={url} controls className="w-full h-8 mt-1" />;
+}
+
 export default function VoiceCheckPage() {
   const [state, setState] = useState<State>('loading');
   const [result, setResult] = useState<VoiceResult | null>(null);
@@ -37,6 +47,7 @@ export default function VoiceCheckPage() {
   const [analysisPct, setAnalysisPct] = useState(0);
   const [analysisLabel, setAnalysisLabel] = useState('Starting…');
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingAudioRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
 
   useEffect(() => {
     if (state !== 'analyzing') {
@@ -69,12 +80,16 @@ export default function VoiceCheckPage() {
           } else {
             setState('idle');
           }
-          setHistory(rest.filter(s => s.voice_result));
+          setHistory(rest.filter(s => s.voice_result).slice(0, 5));
         } else {
           setState('idle');
         }
       });
   }, []);
+
+  function handleAudioBlob(blob: Blob, mimeType: string) {
+    pendingAudioRef.current = { blob, mimeType };
+  }
 
   async function handleTranscript(text: string, dur: number) {
     if (!text) return;
@@ -91,6 +106,16 @@ export default function VoiceCheckPage() {
       setResult(data.result);
       setScore(data.score);
       setState('done');
+
+      // Upload audio blob if captured
+      if (data.sessionId && pendingAudioRef.current) {
+        const { blob, mimeType } = pendingAudioRef.current;
+        pendingAudioRef.current = null;
+        const fd = new FormData();
+        fd.append('audio', blob, `voice.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`);
+        fd.append('sessionId', data.sessionId);
+        fetch('/api/voice/save-audio', { method: 'POST', body: fd }).catch(console.error);
+      }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong');
       setState('error');
@@ -133,7 +158,7 @@ export default function VoiceCheckPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <VoiceRecorder onTranscript={handleTranscript} prompt={PROMPT} />
+          <VoiceRecorder onTranscript={handleTranscript} onAudioBlob={handleAudioBlob} prompt={PROMPT} />
 
           {state === 'analyzing' && (
             <div className="flex flex-col items-center gap-4 py-10">
@@ -204,6 +229,12 @@ export default function VoiceCheckPage() {
 
                   {expandedId === s.id && s.voice_result && (
                     <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
+                      {s.voice_result.audioStoragePath && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Your recording</p>
+                          <AudioPlayer path={s.voice_result.audioStoragePath} />
+                        </div>
+                      )}
                       <p className="text-xs text-slate-400 leading-relaxed">{s.voice_result.overallCoaching}</p>
                       <div className="flex gap-4 text-xs">
                         <span className="text-slate-500">Pace: <span className="text-white">{s.voice_result.paceWpm} wpm</span></span>

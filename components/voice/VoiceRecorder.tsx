@@ -7,12 +7,13 @@ import { Mic, Square, RotateCcw } from 'lucide-react';
 
 interface Props {
   onTranscript: (transcript: string, duration: number) => void;
+  onAudioBlob?: (blob: Blob, mimeType: string) => void;
   prompt?: string;
 }
 
 type RecordState = 'idle' | 'recording' | 'done' | 'unsupported';
 
-export function VoiceRecorder({ onTranscript, prompt }: Props) {
+export function VoiceRecorder({ onTranscript, onAudioBlob, prompt }: Props) {
   const [state, setState] = useState<RecordState>('idle');
   const [transcript, setTranscript] = useState('');
   const [elapsed, setElapsed] = useState(0);
@@ -24,7 +25,12 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
   const displayedTranscriptRef = useRef<string>('');
   const isAbortedRef = useRef<boolean>(false);
   const onTranscriptRef = useRef(onTranscript);
+  const onAudioBlobRef = useRef(onAudioBlob);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioMimeRef = useRef<string>('audio/webm');
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
+  useEffect(() => { onAudioBlobRef.current = onAudioBlob; }, [onAudioBlob]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -44,6 +50,31 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
     displayedTranscriptRef.current = '';
     setElapsed(0);
     isAbortedRef.current = false;
+    audioChunksRef.current = [];
+
+    // Start MediaRecorder to capture audio blob for storage
+    try {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : 'audio/mp4';
+        audioMimeRef.current = mimeType;
+        const mr = new MediaRecorder(stream, { mimeType });
+        audioChunksRef.current = [];
+        mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+        mr.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          if (!isAbortedRef.current && onAudioBlobRef.current) {
+            const blob = new Blob(audioChunksRef.current, { type: mimeType });
+            onAudioBlobRef.current(blob, mimeType);
+          }
+        };
+        mr.start(1000);
+        mediaRecorderRef.current = mr;
+      }).catch(() => { /* microphone access denied — audio won't be stored */ });
+    } catch { /* MediaRecorder not supported — continue without audio storage */ }
 
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -105,12 +136,15 @@ export function VoiceRecorder({ onTranscript, prompt }: Props) {
 
   function stopRecording() {
     recognitionRef.current?.stop();
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
   }
 
   function reset() {
     isAbortedRef.current = true;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    mediaRecorderRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     setTranscript('');
     fullTranscriptRef.current = '';
