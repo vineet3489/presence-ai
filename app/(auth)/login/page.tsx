@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, ShieldCheck } from 'lucide-react';
+import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 function GoogleIcon() {
   return (
@@ -46,9 +47,8 @@ export default function LoginPage() {
       <div className="animate-fade-in-up relative z-10 w-full max-w-sm flex flex-col items-center">
         {/* Logo */}
         <div className="text-center mb-10">
-          <Link href="/" className="text-3xl font-black gradient-text tracking-tight">
-            PresenceAI
-          </Link>
+          <div className="flex justify-center mb-3">
+            <PresenceLogo href="/" size="lg" /></div>
           <p className="text-slate-400 mt-3 text-base">
             Show up as your best self, every day.
           </p>

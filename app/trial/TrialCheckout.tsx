@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import Link from 'next/link';
 import { Camera, Mic, Sparkles, CheckCircle2, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 declare global {
   interface Window {
@@ -79,8 +79,8 @@ export function TrialCheckout({ isFirstTrial }: Props) {
         <div className="w-full max-w-sm">
 
           {/* Logo */}
-          <div className="text-center mb-10">
-            <Link href="/" className="text-2xl font-black gradient-text">PresenceAI</Link>
+          <div className="flex justify-center mb-10">
+            <PresenceLogo href="/" size="md" />
           </div>
 
           {isFirstTrial ? (

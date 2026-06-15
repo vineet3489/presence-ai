@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, Camera, Mic, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react';
+import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 /* ─── Mock output cards shown in the hero / feature sections ─── */
 
@@ -85,7 +86,7 @@ export default function LandingPage() {
 
       {/* Nav */}
       <nav className="border-b border-slate-800/60 px-5 py-4 flex items-center justify-between max-w-6xl mx-auto">
-        <span className="text-xl font-black gradient-text">PresenceAI</span>
+        <PresenceLogo href="/" size="sm" />
         <div className="flex items-center gap-2">
           <Link href="/login">
             <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">Sign in</Button>

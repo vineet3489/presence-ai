@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart, Users, BarChart2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,8 +32,8 @@ export function DashboardSidebar() {
 
   return (
     <aside className="w-60 shrink-0 border-r border-slate-800 min-h-screen hidden md:flex flex-col bg-slate-950">
-      <div className="px-6 py-5 border-b border-slate-800">
-        <span className="text-lg font-black gradient-text">PresenceAI</span>
+      <div className="px-5 py-4 border-b border-slate-800">
+        <PresenceLogo href="/dashboard" size="sm" />
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV.map(({ href, label, icon: Icon, highlight }) => (
