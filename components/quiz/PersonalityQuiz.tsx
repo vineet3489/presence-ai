@@ -135,8 +135,8 @@ export function PersonalityQuiz({ userId }: { userId: string }) {
         occupation: info.occupation.trim() || null,
         education: info.education.trim() || null,
         onboarding_completed: true,
-        trial_started_at: new Date().toISOString(),
-        subscription_status: 'trial',
+        // subscription_status intentionally NOT set here — stays 'none' until
+        // user authorises Razorpay mandate on the /trial page
       });
       if (saveError) throw saveError;
       router.push('/dashboard');
