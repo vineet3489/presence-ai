@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Mic, Heart, ArrowRight, MessageCircleHeart, Sparkles, Wand2, Zap } from 'lucide-react';
 import { AvatarCard } from '@/components/dashboard/AvatarCard';
+import { ZodiacSection } from '@/components/dashboard/ZodiacSection';
 import type { AnalysisSession, AppearanceResult, VoiceResult } from '@/types';
 
 function shortFix(text: string): string {
@@ -211,10 +212,13 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* Zodiac Insights */}
+      <ZodiacSection />
+
       {/* Daily Tips */}
       <Card className="border-slate-800">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Today&apos;s Tips</CardTitle>
+          <CardTitle className="text-sm">Today&apos;s Coaching</CardTitle>
         </CardHeader>
         <CardContent>
           <DailyTips initialXp={xp} initialStreak={streak} />

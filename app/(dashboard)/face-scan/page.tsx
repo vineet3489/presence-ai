@@ -4,7 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
-import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles } from 'lucide-react';
+
+type Objective = 'date' | 'interview' | 'general';
+const OBJECTIVES: { value: Objective; label: string; sub: string; icon: React.ElementType }[] = [
+  { value: 'date', label: 'A date', sub: 'Warmth & attraction', icon: Heart },
+  { value: 'interview', label: 'Interview', sub: 'Professional edge', icon: Briefcase },
+  { value: 'general', label: 'General vibe', sub: 'Full presence check', icon: Sparkles },
+];
 import { createClient } from '@/lib/supabase/client';
 import type { AppearanceResult } from '@/types';
 
@@ -40,6 +47,7 @@ const ANALYSIS_STAGES = [
 
 export default function FaceScanPage() {
   const [state, setState] = useState<State>('loading');
+  const [objective, setObjective] = useState<Objective | null>(null);
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [capturedMediaType, setCapturedMediaType] = useState<'image/jpeg' | 'image/png'>('image/jpeg');
   const [result, setResult] = useState<AppearanceResult | null>(null);
@@ -105,7 +113,7 @@ export default function FaceScanPage() {
       const res = await fetch('/api/analyze-appearance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: capturedBase64, mediaType: capturedMediaType }),
+        body: JSON.stringify({ imageBase64: capturedBase64, mediaType: capturedMediaType, objective }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
@@ -120,6 +128,7 @@ export default function FaceScanPage() {
 
   function reset() {
     setState('idle');
+    setObjective(null);
     setCapturedBase64(null);
     setResult(null);
     setScore(0);
@@ -155,6 +164,30 @@ export default function FaceScanPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Objective selector — shown when in idle/captured/error state and objective not yet chosen */}
+          {(state === 'idle' || state === 'captured' || state === 'error') && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">What&apos;s this scan for?</p>
+              <div className="grid grid-cols-3 gap-2">
+                {OBJECTIVES.map(({ value, label, sub, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setObjective(value)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all ${
+                      objective === value
+                        ? 'border-violet-500 bg-violet-900/30 text-white'
+                        : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-500 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={16} className={objective === value ? 'text-violet-400' : 'text-slate-500'} />
+                    <span className="text-xs font-semibold">{label}</span>
+                    <span className="text-[10px] text-slate-500 leading-none">{sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <CameraCapture onCapture={handleCapture} />
 
           {state === 'captured' && (

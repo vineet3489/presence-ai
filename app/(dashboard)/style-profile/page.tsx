@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Wand2, Download, Lock } from 'lucide-react';
+import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Wand2, Download, Lock, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -43,13 +43,25 @@ export default function StyleProfilePage() {
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
   const [scanGate, setScanGate] = useState<{ needsFace: boolean; needsVoice: boolean } | null>(null);
+  const [userMeta, setUserMeta] = useState<{ city?: string | null; zodiac?: string | null; zodiacEmoji?: string } | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
       supabase.from('analysis_sessions').select('id').eq('session_type', 'appearance').limit(1).single(),
       supabase.from('analysis_sessions').select('id').eq('session_type', 'voice').limit(1).single(),
-    ]).then(([face, voice]) => {
+      supabase.from('user_profiles').select('city, date_of_birth').single(),
+    ]).then(([face, voice, profileRes]) => {
+      // Compute zodiac from DOB if available
+      const dob = (profileRes.data as Record<string, unknown> | null)?.date_of_birth as string | null;
+      const city = (profileRes.data as Record<string, unknown> | null)?.city as string | null;
+      if (dob) {
+        fetch('/api/zodiac').then(r => r.json()).then(d => {
+          setUserMeta({ city, zodiac: d.zodiac ?? null, zodiacEmoji: d.emoji });
+        }).catch(() => setUserMeta({ city }));
+      } else {
+        setUserMeta({ city });
+      }
       const needsFace = !face.data;
       const needsVoice = !voice.data;
       if (needsFace || needsVoice) {
@@ -178,6 +190,32 @@ export default function StyleProfilePage() {
         <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-1">Your Archetype</p>
         <h2 className="text-xl font-black text-white mb-2">{profile.archetype}</h2>
         <p className="text-slate-300 text-sm leading-relaxed">{profile.archetypeDescription}</p>
+      </div>
+
+      {/* Presence Identity Card */}
+      <div className="rounded-2xl border border-slate-700/60 bg-gradient-to-br from-slate-800/80 to-slate-900 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <CreditCard size={13} className="text-slate-400" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">My Presence ID</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {userMeta?.zodiac && (
+            <span className="flex items-center gap-1.5 text-xs bg-amber-900/30 border border-amber-800/40 text-amber-300 rounded-full px-3 py-1.5">
+              <span>{userMeta.zodiacEmoji}</span> {userMeta.zodiac}
+            </span>
+          )}
+          {userMeta?.city && (
+            <span className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded-full px-3 py-1.5">
+              📍 {userMeta.city}
+            </span>
+          )}
+          <span className="text-xs bg-violet-900/30 border border-violet-700/40 text-violet-300 rounded-full px-3 py-1.5">
+            ✦ {profile.archetype}
+          </span>
+        </div>
+        {profile.grooming && (
+          <p className="text-xs text-slate-500 mt-3 leading-relaxed border-t border-slate-800 pt-3">{profile.grooming}</p>
+        )}
       </div>
 
       {/* AI Look */}

@@ -38,7 +38,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single();
 
   if (!profile?.onboarding_completed) redirect('/onboarding');
-  if (!hasActiveAccess(profile)) redirect('/trial');
+  // PAYWALL DISABLED FOR TESTING — re-enable by uncommenting the line below
+  // if (!hasActiveAccess(profile)) redirect('/trial');
 
   return (
     <div className="flex min-h-screen">

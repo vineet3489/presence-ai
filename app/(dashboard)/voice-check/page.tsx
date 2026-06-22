@@ -4,9 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Button } from '@/components/ui/button';
-import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { VoiceResult } from '@/types';
+
+type Objective = 'date' | 'interview' | 'general';
+const OBJECTIVES: { value: Objective; label: string; sub: string; icon: React.ElementType }[] = [
+  { value: 'date', label: 'A date', sub: 'Warmth & flow', icon: Heart },
+  { value: 'interview', label: 'Interview', sub: 'Authority & clarity', icon: Briefcase },
+  { value: 'general', label: 'General vibe', sub: 'Full voice check', icon: Sparkles },
+];
 
 const VOICE_STAGES = [
   { pct: 22, label: 'Reading your transcript…', delay: 400 },
@@ -38,6 +45,7 @@ function AudioPlayer({ path }: { path: string }) {
 
 export default function VoiceCheckPage() {
   const [state, setState] = useState<State>('loading');
+  const [objective, setObjective] = useState<Objective | null>(null);
   const [result, setResult] = useState<VoiceResult | null>(null);
   const [score, setScore] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -99,7 +107,7 @@ export default function VoiceCheckPage() {
       const res = await fetch('/api/analyze-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: text, durationSeconds: dur }),
+        body: JSON.stringify({ transcript: text, durationSeconds: dur, objective }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
@@ -124,6 +132,7 @@ export default function VoiceCheckPage() {
 
   function reset() {
     setState('idle');
+    setObjective(null);
     setResult(null);
     setScore(0);
     setErrorMsg('');
@@ -158,6 +167,30 @@ export default function VoiceCheckPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Objective selector */}
+          {(state === 'idle' || state === 'error') && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">What&apos;s this check for?</p>
+              <div className="grid grid-cols-3 gap-2">
+                {OBJECTIVES.map(({ value, label, sub, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setObjective(value)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all ${
+                      objective === value
+                        ? 'border-sky-500 bg-sky-900/30 text-white'
+                        : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-500 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={16} className={objective === value ? 'text-sky-400' : 'text-slate-500'} />
+                    <span className="text-xs font-semibold">{label}</span>
+                    <span className="text-[10px] text-slate-500 leading-none">{sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <VoiceRecorder onTranscript={handleTranscript} onAudioBlob={handleAudioBlob} prompt={PROMPT} />
 
           {state === 'analyzing' && (

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { imageBase64, mediaType = 'image/jpeg' } = body;
+    const { imageBase64, mediaType = 'image/jpeg', objective } = body;
 
     if (!imageBase64) {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    const prompt = buildAppearancePrompt(profile);
+    const prompt = buildAppearancePrompt(profile, objective ?? null);
     const raw = await callClaudeWithImage(
       APPEARANCE_SYSTEM_PROMPT,
       prompt,

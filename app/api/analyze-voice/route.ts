@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { transcript, durationSeconds } = body;
+    const { transcript, durationSeconds, objective } = body;
 
     if (!transcript || typeof transcript !== 'string') {
       return NextResponse.json({ error: 'Transcript is required' }, { status: 400 });
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       Promise.resolve({ transcript, durationSeconds: durationSeconds || 60 }),
       supabase.from('user_profiles').select('age, city').eq('user_id', user.id).single(),
     ]);
-    const prompt = buildVoicePrompt(voiceData, profile);
+    const prompt = buildVoicePrompt(voiceData, profile, objective ?? null);
     const raw = await callClaude(VOICE_SYSTEM_PROMPT, prompt, 2000);
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);

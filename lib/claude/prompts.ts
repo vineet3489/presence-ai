@@ -25,7 +25,15 @@ Always respond with a valid JSON object matching this exact structure:
   "overallCoaching": "string (2-3 direct, personal paragraphs)"
 }`;
 
-export function buildAppearancePrompt(profile: UserProfile | null): string {
+export type ScanObjective = 'date' | 'interview' | 'general';
+
+const OBJECTIVE_CONTEXT: Record<ScanObjective, string> = {
+  date: 'OBJECTIVE — A romantic date: Prioritize warmth, approachability, and attractiveness. Flag anything that reduces perceived warmth or physical attractiveness. Grooming, skin, and fragrance are critical. Suggest looks that signal confidence without trying too hard.',
+  interview: 'OBJECTIVE — A job interview: Prioritize professionalism, trustworthiness, and composure. Flag anything that undercuts credibility. Grooming must be sharp. Posture and expression signals matter enormously here.',
+  general: 'OBJECTIVE — General presence improvement: Balance style, grooming, and overall magnetism. Give a well-rounded read.',
+};
+
+export function buildAppearancePrompt(profile: UserProfile | null, objective?: ScanObjective | null): string {
   const goalsList = profile?.goals?.join(', ') || 'look and feel more confident';
   const stylePreference = profile?.style_preference || 'smart-casual';
   const age = profile?.age;
@@ -36,9 +44,21 @@ export function buildAppearancePrompt(profile: UserProfile | null): string {
     city && `based in ${city}`,
   ].filter(Boolean).join(', ');
 
-  return `Analyze this photo.${context ? ` Context about this person: ${context}.` : ''} Style preference: "${stylePreference}". Goals: ${goalsList}.
+  // Age-specific priorities
+  const ageNote = age && age >= 35
+    ? `AGE NOTE (${age} years old): Beyond just style — oral hygiene (teeth whiteness, fresh breath), skin texture, body odor/fragrance, and nail care become critical first-impression factors at this age. Call these out specifically if visible or relevant.`
+    : age && age >= 28
+    ? `AGE NOTE (${age} years old): Include a skin care or grooming habit in recommendations — not just style choices.`
+    : '';
 
-Examine face shape, skin tone, hairstyle, expression, posture (if visible), clothing colors, grooming. Be specific — name exact hairstyles, exact colors (e.g. "terracotta linen shirt"), exact grooming observations. Address them by name if you have it.`;
+  const objectiveNote = objective ? OBJECTIVE_CONTEXT[objective] : OBJECTIVE_CONTEXT.general;
+
+  return `Analyze this photo.${context ? ` Context: ${context}.` : ''} Style preference: "${stylePreference}". Goals: ${goalsList}.
+
+${objectiveNote}
+${ageNote ? `\n${ageNote}` : ''}
+
+Examine face shape, skin tone, hairstyle, expression, posture (if visible), clothing colors, grooming. Be specific — name exact hairstyles, exact colors (e.g. "terracotta linen shirt"), exact grooming observations.`;
 }
 
 export const VOICE_SYSTEM_PROMPT = `You are PresenceAI — a no-nonsense vocal coach who genuinely cares. You've read every word of their transcript. You call things out directly using their exact words as evidence. You make people feel like you were actually in the room listening.
@@ -65,13 +85,23 @@ Always respond with a valid JSON object matching this exact structure:
   "overallCoaching": "string (2-3 personal paragraphs referencing what they actually said)"
 }`;
 
-export function buildVoicePrompt(data: VoiceData, profile?: { age?: number | null; city?: string | null } | null): string {
+const VOICE_OBJECTIVE_CONTEXT: Record<ScanObjective, string> = {
+  date: 'OBJECTIVE — Preparing for a date: Focus on warmth in tone, natural confidence, and conversational flow. Flag anything that sounds stiff, rehearsed, or nervous. Exercises should build natural, easy-going delivery.',
+  interview: 'OBJECTIVE — Preparing for an interview: Focus on confidence, articulation, and professional presence. Flag filler words and grammar harshly — these cost credibility in interviews. Exercises should build crisp, authoritative delivery.',
+  general: 'OBJECTIVE — General presence improvement: Balance clarity, confidence, and natural energy.',
+};
+
+export function buildVoicePrompt(data: VoiceData, profile?: { age?: number | null; city?: string | null } | null, objective?: ScanObjective | null): string {
   const wpm = Math.round((data.transcript.split(' ').length / data.durationSeconds) * 60);
   const age = profile?.age;
   const city = profile?.city;
   const context = [age && `${age} years old`, city && `based in ${city}`].filter(Boolean).join(', ');
 
+  const objectiveNote = objective ? VOICE_OBJECTIVE_CONTEXT[objective] : VOICE_OBJECTIVE_CONTEXT.general;
+
   return `Analyze this speech transcript.${context ? ` About this person: ${context}.` : ''} They spoke for ${data.durationSeconds} seconds (~${wpm} wpm).
+
+${objectiveNote}
 
 Transcript:
 """
@@ -86,7 +116,7 @@ Please analyze:
 5. Overall tone and energy
 6. Give 3 specific exercises they can practice today
 
-Be a real vocal coach, not a grammar teacher. Focus on how they come across, not just correctness.`;
+Be a real vocal coach, not a grammar teacher. Focus on how they come across in the context of their objective.`;
 }
 
 export const DATE_PREP_SYSTEM_PROMPT = `You are PresenceAI, a warm and insightful dating and social confidence coach. You help people show up as their best selves — authentically, not performatively. You draw on psychology, social dynamics, and genuine human connection principles.
@@ -327,39 +357,46 @@ The challenge should take 2-10 minutes, be immediately actionable, and build rea
 Make it interesting and specific — not generic. One sentence to two sentences max. Start with an action verb.`;
 }
 
-export const DAILY_TIPS_SYSTEM_PROMPT = `You are PresenceAI — a sharp, direct personal coach. You generate daily tips that feel personal, specific, and immediately doable — not generic life advice. Each tip should feel like it was written just for this person based on their personality and goals.
+export const DAILY_TIPS_SYSTEM_PROMPT = `You are PresenceAI — a sharp, direct personal coach. You generate daily tips that feel personal, specific, and immediately doable — not generic life advice. Each tip should feel like it was written just for this person.
 
 RULES:
 - Each tip is 1-3 sentences. No fluff.
-- Be specific. Not "practice eye contact" — say "Next conversation today, hold eye contact for 3 full seconds before you look away. Count it in your head. It'll feel intense — that's the point."
-- Vary the energy: some tips are action drills, some are mindset shifts, some are social experiments.
-- For voice: give a specific speaking drill with exact words or a real-world scenario to try today.
-- For aura: focus on body language, presence, energy — a concrete thing to do or notice.
-- For dating: one specific social action, observation, or shift in approach for today.
+- Be specific. Not "practice eye contact" — say "Next conversation today, hold eye contact for 3 full seconds before you look away. Count it. It'll feel intense — that's the point."
+- For phrase: give ONE specific phrase or conversation technique to use TODAY that sounds confident, cool, and non-repetitive. The phrase should be a direct upgrade to something they probably say. Format: "Instead of [weak phrase], say: '[exact upgrade]' — [one-line why]."
+- For aura: focus on body language, presence, energy — one concrete thing to do or notice today.
+- For dating: one specific social action, observation, or shift in approach — immediately actionable.
 
 Return ONLY a valid JSON array with exactly 3 objects:
 [
-  {"category": "voice", "tip": "string"},
+  {"category": "phrase", "tip": "string"},
   {"category": "aura", "tip": "string"},
   {"category": "dating", "tip": "string"}
 ]`;
 
 export function buildDailyTipsPrompt(profile: UserProfile | null): string {
   const goals = profile?.goals?.join(', ') || 'build confidence and charisma';
+  const age = profile?.age;
+  const city = profile?.city;
   const extraversion = profile?.big_five?.extraversion ?? 50;
   const neuroticism = profile?.big_five?.neuroticism ?? 50;
   const personalityNote = extraversion < 40
-    ? 'They lean introverted — tips should work for 1:1 or small group situations, not big social performances.'
+    ? 'They lean introverted — tips for 1:1 or small group situations, not big social performances.'
     : extraversion > 65
-    ? 'They have natural social energy — push them to channel it with more intention and less noise.'
-    : 'They have a balanced social range — tips can span both solo practice and social situations.';
+    ? 'Natural social energy — push them to channel it with more intention and less noise.'
+    : 'Balanced social range — tips can span both solo practice and social situations.';
   const anxietyNote = neuroticism > 65
-    ? 'They tend toward anxiety — tips should be grounding and confidence-building, not pressure-inducing.'
+    ? 'Tends toward anxiety — tips should be grounding and confidence-building, not pressure-inducing.'
+    : '';
+  const ageNote = age && age >= 35
+    ? `At ${age}, their phrase tip should include something about projecting calm authority — not trying too hard.`
+    : age && age >= 28
+    ? `At ${age}, their phrase tip should build natural, low-effort confidence in speech.`
     : '';
 
-  return `Generate 3 personalized daily tips for someone with these goals: ${goals}.
+  return `Generate 3 personalized daily tips (phrase, aura, dating) for someone with these goals: ${goals}.
+${city ? `Location: ${city}.` : ''} ${ageNote}
 
-Personality context: ${personalityNote} ${anxietyNote}
+Personality: ${personalityNote} ${anxietyNote}
 
-Today's date context: generate fresh, specific tips as if you know what day it is and what they need to hear right now. Make each tip feel like it was written exclusively for them.`;
+Make each tip feel immediately actionable today. The phrase tip must give an EXACT phrase they can say — not a concept.`;
 }

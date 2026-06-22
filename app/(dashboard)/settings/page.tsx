@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Profile {
   subscription_status: string | null;
   trial_started_at: string | null;
   subscription_ends_at: string | null;
+  date_of_birth: string | null;
+  place_of_birth: string | null;
 }
 
 function formatDate(iso: string) {
@@ -25,6 +27,10 @@ export default function SettingsPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [dob, setDob] = useState('');
+  const [placeOfBirth, setPlaceOfBirth] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -33,13 +39,29 @@ export default function SettingsPage() {
     });
     supabase
       .from('user_profiles')
-      .select('subscription_status, trial_started_at, subscription_ends_at')
+      .select('subscription_status, trial_started_at, subscription_ends_at, date_of_birth, place_of_birth')
       .single()
       .then(({ data }) => {
         setProfile(data);
+        if (data?.date_of_birth) setDob(data.date_of_birth);
+        if (data?.place_of_birth) setPlaceOfBirth(data.place_of_birth);
         setLoading(false);
       });
   }, []);
+
+  async function handleSaveProfile() {
+    setSavingProfile(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('user_profiles').update({
+      date_of_birth: dob || null,
+      place_of_birth: placeOfBirth.trim() || null,
+    }).eq('user_id', user.id);
+    setSavingProfile(false);
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 3000);
+  }
 
   async function handleCancel() {
     if (confirmText.toLowerCase() !== 'cancel') return;
@@ -82,6 +104,45 @@ export default function SettingsPage() {
           <p className="text-xs text-slate-500">Signed in as</p>
           <p className="text-sm text-white font-medium mt-0.5">{email}</p>
         </div>
+      </div>
+
+      {/* Identity (for zodiac) */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
+        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Identity</p>
+        <p className="text-xs text-slate-500 -mt-1">Used for zodiac-based personality insights.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 mb-1.5 block">Date of birth</label>
+            <input
+              type="date"
+              value={dob}
+              onChange={e => setDob(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1.5 block">Place of birth</label>
+            <input
+              type="text"
+              value={placeOfBirth}
+              onChange={e => setPlaceOfBirth(e.target.value)}
+              placeholder="e.g. Mumbai"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
+            />
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={handleSaveProfile}
+          disabled={savingProfile}
+          className="gap-1.5"
+        >
+          {savingProfile
+            ? <Loader2 size={13} className="animate-spin" />
+            : profileSaved
+            ? <><Check size={13} /> Saved</>
+            : 'Save'}
+        </Button>
       </div>
 
       {/* Subscription */}
