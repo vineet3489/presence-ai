@@ -58,7 +58,8 @@ async function getPresetVoice(userNameHint?: string): Promise<string | null> {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
+  const forceUpload = new URL(request.url).searchParams.get('force') === '1';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -110,16 +111,18 @@ export async function POST() {
     const admin = createAdminClient();
     const cachedIdPath = `${user.id}/heygen_photo_id_${photoPath.replace(/\//g, '_')}.txt`;
 
-    // 2. Check for cached talking_photo_id
+    // 2. Check for cached talking_photo_id (skip if force=1)
     let talkingPhotoId: string | undefined;
-    try {
-      const { data: cached } = await admin.storage.from('face-scans').download(cachedIdPath);
-      if (cached) {
-        const id = (await cached.text()).trim();
-        if (id) talkingPhotoId = id;
-      }
-    } catch { /* no cache */ }
-    console.log('[avatar/generate] cached talkingPhotoId:', talkingPhotoId ?? 'none');
+    if (!forceUpload) {
+      try {
+        const { data: cached } = await admin.storage.from('face-scans').download(cachedIdPath);
+        if (cached) {
+          const id = (await cached.text()).trim();
+          if (id) talkingPhotoId = id;
+        }
+      } catch { /* no cache */ }
+    }
+    console.log('[avatar/generate] cached talkingPhotoId:', talkingPhotoId ?? 'none', '| forceUpload:', forceUpload);
 
     // 3. If no cached talking_photo_id, try to upload; fall back to named avatar
     let avatarCharacter: Record<string, unknown>;
@@ -132,7 +135,11 @@ export async function POST() {
       const photoRes = await fetch(signedData.signedUrl);
       if (!photoRes.ok) throw new Error('Could not download face photo from storage.');
       const photoBuffer = Buffer.from(await photoRes.arrayBuffer());
-      const photoMime = photoRes.headers.get('content-type') || 'image/jpeg';
+      // Strip any extra params from content-type (e.g. "image/jpeg; charset=utf-8" → "image/jpeg")
+      const rawMime = photoRes.headers.get('content-type') || 'image/jpeg';
+      const photoMime = rawMime.split(';')[0].trim() || 'image/jpeg';
+
+      console.log('[avatar/generate] uploading photo, size:', photoBuffer.length, 'mime:', photoMime, 'path:', photoPath);
 
       const uploadRes = await fetch('https://upload.heygen.com/v1/talking_photo', {
         method: 'POST',

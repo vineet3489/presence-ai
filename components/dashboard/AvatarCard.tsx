@@ -89,11 +89,12 @@ export function AvatarCard() {
     poll();
   }
 
-  async function generate() {
+  async function generate(force = false) {
     setError('');
     setPhase('starting');
 
-    const res = await fetch('/api/avatar/generate', { method: 'POST' });
+    const url = force ? '/api/avatar/generate?force=1' : '/api/avatar/generate';
+    const res = await fetch(url, { method: 'POST' });
     let data: { videoId?: string; script?: string; error?: string; message?: string } = {};
     try { data = await res.json(); } catch {
       setError('Server error — try again');
@@ -233,14 +234,11 @@ export function AvatarCard() {
       {error && (
         <div className="rounded-xl bg-red-900/20 border border-red-800/40 px-4 py-3 mb-4">
           <p className="text-xs text-red-400">{error}</p>
-          {error.includes('Face Scan') && (
-            <p className="text-xs text-slate-500 mt-1">Go to Face Scan, take a new photo, then come back here.</p>
-          )}
         </div>
       )}
 
-      <Button onClick={generate} className="w-full bg-violet-600 hover:bg-violet-500 gap-2">
-        <Play size={14} /> Generate My Avatar
+      <Button onClick={() => generate(!!error)} className="w-full bg-violet-600 hover:bg-violet-500 gap-2">
+        <Play size={14} /> {error ? 'Try Again (Fresh Upload)' : 'Generate My Avatar'}
       </Button>
       <p className="text-xs text-slate-600 text-center mt-2">Takes ~1 min · Renders in background</p>
     </div>
