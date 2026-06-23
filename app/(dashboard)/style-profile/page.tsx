@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Wand2, Download, Lock, CreditCard } from 'lucide-react';
+import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Lock, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { AvatarCard } from '@/components/dashboard/AvatarCard';
 
 interface StyleProfile {
   archetype: string;
@@ -39,9 +40,6 @@ export default function StyleProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [lookSrc, setLookSrc] = useState<string | null>(null);
-  const [genLoading, setGenLoading] = useState(false);
-  const [genError, setGenError] = useState('');
   const [scanGate, setScanGate] = useState<{ needsFace: boolean; needsVoice: boolean } | null>(null);
   const [userMeta, setUserMeta] = useState<{ city?: string | null; zodiac?: string | null; zodiacEmoji?: string } | null>(null);
 
@@ -52,7 +50,6 @@ export default function StyleProfilePage() {
       supabase.from('analysis_sessions').select('id').eq('session_type', 'voice').limit(1).single(),
       supabase.from('user_profiles').select('city, date_of_birth').single(),
     ]).then(([face, voice, profileRes]) => {
-      // Compute zodiac from DOB if available
       const dob = (profileRes.data as Record<string, unknown> | null)?.date_of_birth as string | null;
       const city = (profileRes.data as Record<string, unknown> | null)?.city as string | null;
       if (dob) {
@@ -69,9 +66,6 @@ export default function StyleProfilePage() {
         setLoading(false);
       } else {
         fetchProfile();
-        fetch('/api/style-profile/last-look').then(r => r.json()).then(({ url }) => {
-          if (url) setLookSrc(url);
-        }).catch(() => {});
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,41 +87,6 @@ export default function StyleProfilePage() {
     }
   }
 
-  async function generateLook() {
-    if (!profile) return;
-    setGenLoading(true);
-    setGenError('');
-    try {
-      const res = await fetch('/api/style-profile/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ styleProfile: profile }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || 'Generation failed');
-      setLookSrc(`data:${data.mimeType};base64,${data.imageBase64}`);
-    } catch (err) {
-      setGenError(err instanceof Error ? err.message : 'Image generation failed');
-    } finally {
-      setGenLoading(false);
-    }
-  }
-
-  async function downloadImage() {
-    if (!lookSrc) return;
-    if (lookSrc.startsWith('http')) {
-      const res = await fetch(lookSrc);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url; link.download = 'my-ideal-look.jpg'; link.click();
-      URL.revokeObjectURL(url);
-    } else {
-      const link = document.createElement('a');
-      link.href = lookSrc; link.download = 'my-ideal-look.png'; link.click();
-    }
-  }
-
   if (scanGate) {
     return (
       <div className="p-6 max-w-lg mx-auto pt-20 text-center">
@@ -136,7 +95,7 @@ export default function StyleProfilePage() {
         </div>
         <h1 className="text-2xl font-black text-white mb-2">Complete your scans first</h1>
         <p className="text-slate-400 text-sm mb-8">
-          Style Profile uses both your face scan and voice check to build something accurate. Complete both to unlock it.
+          Style Profile uses both your face scan and voice check to build something accurate.
         </p>
         <div className="flex flex-col gap-3">
           {scanGate.needsFace && (
@@ -218,37 +177,18 @@ export default function StyleProfilePage() {
         )}
       </div>
 
-      {/* AI Look */}
-      <div className="rounded-2xl border border-violet-800/50 bg-slate-900/60 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Wand2 size={14} className="text-violet-400" />
-          <span className="text-sm font-semibold text-white">Your Ideal Look</span>
-          <span className="text-[10px] bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI</span>
+      {/* Avatar Video — ideal look as a talking video, not a static image */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={13} className="text-violet-400" />
+          <span className="text-sm font-semibold text-white">Your Ideal Look Avatar</span>
+          <span className="text-[10px] bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI Video</span>
         </div>
-        {lookSrc ? (
-          <div className="space-y-3">
-            <div className="rounded-xl overflow-hidden border border-slate-700">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={lookSrc} alt="Your ideal look" className="w-full object-cover" />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={downloadImage} className="gap-1.5 flex-1">
-                <Download size={13} /> Save
-              </Button>
-              <Button variant="outline" size="sm" onClick={generateLook} disabled={genLoading} className="flex-1 gap-1.5">
-                {genLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                Regenerate
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {genError && <p className="text-xs text-red-400 mb-2">{genError}</p>}
-            <Button onClick={generateLook} disabled={genLoading} className="w-full bg-violet-600 hover:bg-violet-500 gap-2">
-              {genLoading ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : <><Wand2 size={14} /> Generate My Look</>}
-            </Button>
-          </>
-        )}
+        <p className="text-xs text-slate-500 mb-3">
+          A talking avatar of you, scripted to match your archetype and voice coaching.
+          Generates from your face scan photo.
+        </p>
+        <AvatarCard />
       </div>
 
       {/* Colors */}
@@ -288,10 +228,9 @@ export default function StyleProfilePage() {
           <span className="text-sm font-semibold text-white">Hair & Grooming</span>
         </div>
         <p className="text-sm text-slate-300">{profile.hairAdvice}</p>
-        <p className="text-sm text-slate-400">{profile.grooming}</p>
       </div>
 
-      <p className="text-xs text-slate-600 text-center pb-2">Refreshes weekly · Built from your scans</p>
+      <p className="text-xs text-slate-600 text-center pb-2">Refreshes weekly · Tap ↺ after a new scan to update</p>
     </div>
   );
 }
