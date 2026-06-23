@@ -2,56 +2,121 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-// Note: photo is passed as a signed URL — no separate HeyGen upload needed
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const HEYGEN = process.env.HEYGEN_API_KEY!;
 
-async function buildScript(archetype: string, voiceFixes: string[], goal: string): Promise<string> {
-  const goalContext = goal?.includes('date') ? 'approaching a woman at a café or bar' : 'making a strong first impression in a social setting';
-  const fixes = voiceFixes.length > 0 ? `Voice notes: ${voiceFixes.slice(0, 2).join('; ')}` : '';
+async function buildScript(
+  archetype: string,
+  voiceFixes: string[],
+  goal: string,
+  voiceStrengths: string[]
+): Promise<string> {
+  const goalContext = goal?.includes('date')
+    ? 'approaching someone they find attractive at a social setting'
+    : goal?.includes('confident') || goal?.includes('interview')
+    ? 'making a strong, memorable first impression at a professional or social setting'
+    : 'making a confident, natural first impression in a social setting';
+
+  const fixes = voiceFixes.length > 0
+    ? `Their voice coaching: avoid ${voiceFixes.slice(0, 2).join(' and ')}. Be direct, no hedging.`
+    : '';
+  const strengths = voiceStrengths.length > 0
+    ? `Their natural speaking strengths: ${voiceStrengths.slice(0, 1).join(', ')}. Lean into this.`
+    : '';
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 150,
     messages: [{
       role: 'user',
-      content: `Write a 15-second spoken script (~38–42 words) for ${goalContext}.
-The speaker's style archetype: "${archetype}".
+      content: `Write a 15-second spoken script (~38–42 words) for someone ${goalContext}.
+Their style archetype: "${archetype}".
 ${fixes}
+${strengths}
 
 Rules:
-- Zero filler words (no um, like, basically, you know)
+- Zero filler words (no um, uh, like, basically, you know, so)
 - Confident sentence endings — no upward questioning tone
-- Observational opener, genuine curiosity, ends with a single question
-- Matches the energy of the archetype
-- Natural, not pickup-line cheesy
+- Specific observational opener, genuine curiosity, ends with ONE direct question
+- Matches the archetype's energy authentically
+- Sounds like their best, most articulate version — not scripted or salesy
 - First person, present tense
-- Return ONLY the spoken words — no quotes, no stage directions, nothing else.`
+- Return ONLY the spoken words. No quotes, no stage directions, nothing else.`
     }]
   });
   return ((msg.content[0] as { text: string }).text).trim();
 }
 
-async function getPresetVoice(userNameHint?: string): Promise<string | null> {
+async function cloneVoiceFromRecording(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  audioPath: string
+): Promise<string | null> {
+  try {
+    const { data: signedData } = await admin.storage
+      .from('face-scans')
+      .createSignedUrl(audioPath, 300);
+    if (!signedData?.signedUrl) return null;
+
+    const audioRes = await fetch(signedData.signedUrl);
+    if (!audioRes.ok) return null;
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+
+    // Minimum ~5 seconds of audio needed for voice cloning
+    if (audioBuffer.length < 40000) {
+      console.log('[avatar/generate] voice recording too short for cloning, skipping');
+      return null;
+    }
+
+    console.log('[avatar/generate] cloning voice from recording, size:', audioBuffer.length);
+
+    // Determine file extension from path
+    const ext = audioPath.endsWith('.mp4') ? 'mp4' : 'webm';
+    const mimeType = ext === 'mp4' ? 'audio/mp4' : 'audio/webm';
+
+    const form = new FormData();
+    form.append('name', `PresenceAI_${userId.slice(0, 8)}`);
+    form.append('file', new Blob([audioBuffer], { type: mimeType }), `voice.${ext}`);
+
+    const cloneRes = await fetch('https://api.heygen.com/v2/voice_clone', {
+      method: 'POST',
+      headers: { 'X-Api-Key': HEYGEN },
+      body: form,
+    });
+    const cloneText = await cloneRes.text();
+    console.log('[avatar/generate] voice_clone response:', cloneRes.status, cloneText.slice(0, 200));
+
+    let cloneData: { data?: { voice_id?: string }; code?: number; message?: string } = {};
+    try { cloneData = JSON.parse(cloneText); } catch { return null; }
+
+    return cloneData.data?.voice_id ?? null;
+  } catch (e) {
+    console.error('[avatar/generate] voice clone error (non-fatal):', e);
+    return null;
+  }
+}
+
+async function getPresetVoice(): Promise<string | null> {
   try {
     const res = await fetch('https://api.heygen.com/v2/voices', {
       headers: { 'X-Api-Key': HEYGEN },
     });
-    const data = await res.text().then(t => JSON.parse(t));
+    const data = await res.json();
     const voices: { voice_id: string; language?: string; gender?: string; name?: string }[] =
       data.data?.voices || data.voices || [];
-    // Try to match user's cloned voice by name, then fall back to generic English male
-    const nameParts = userNameHint?.toLowerCase().split(/\s+/).filter(Boolean) ?? [];
-    const pick = (nameParts.length > 0
-      ? voices.find(v => nameParts.some(p => v.name?.toLowerCase().includes(p)))
-      : undefined)
-      || voices.find(v =>
-        (v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('english'))
-        && v.gender?.toLowerCase() === 'male'
-      ) || voices.find(v =>
-        v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('en')
-      ) || voices[0];
+    // Prefer confident-sounding English male voice
+    const pick = voices.find(v =>
+      v.gender?.toLowerCase() === 'male' &&
+      (v.name?.toLowerCase().includes('ryan') ||
+       v.name?.toLowerCase().includes('josh') ||
+       v.name?.toLowerCase().includes('adam') ||
+       v.name?.toLowerCase().includes('james'))
+    ) || voices.find(v =>
+      v.gender?.toLowerCase() === 'male' &&
+      (v.language?.toLowerCase().includes('english') || v.name?.toLowerCase().includes('en'))
+    ) || voices.find(v => v.gender?.toLowerCase() === 'male')
+      || voices[0];
     return pick?.voice_id ?? null;
   } catch {
     return null;
@@ -60,12 +125,12 @@ async function getPresetVoice(userNameHint?: string): Promise<string | null> {
 
 export async function POST(request: Request) {
   const forceUpload = new URL(request.url).searchParams.get('force') === '1';
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!HEYGEN) return NextResponse.json({ error: 'HeyGen not configured' }, { status: 500 });
+  if (!HEYGEN) return NextResponse.json({ error: 'AI video not configured' }, { status: 500 });
 
-  // Fetch all required data in parallel
   const [
     { data: lastScan },
     { data: voiceSession },
@@ -80,13 +145,11 @@ export async function POST(request: Request) {
       .order('created_at', { ascending: false }).limit(1).single(),
     supabase.from('analysis_sessions').select('date_prep_result')
       .eq('user_id', user.id).eq('session_type', 'date_prep')
-      .like('date_prep_result->>type', 'style_profile%')
-      .order('created_at', { ascending: false }).limit(1).single(),
-    supabase.from('user_profiles').select('goals, full_name').eq('user_id', user.id).single(),
+      .order('created_at', { ascending: false }).limit(10),
+    supabase.from('user_profiles').select('goals').eq('user_id', user.id).single(),
   ]);
 
-  // Always use the raw face scan photo — HeyGen talking_photo requires a real face photo,
-  // not an AI-generated styled image (which causes frozen/static output).
+  // Require face scan photo
   const rawPhotoPath = (lastScan?.appearance_result as Record<string, unknown>)?.photoStoragePath as string | null;
   if (!rawPhotoPath) {
     return NextResponse.json({
@@ -94,52 +157,58 @@ export async function POST(request: Request) {
       message: 'Do a Face Scan first — we need your photo to build the avatar.',
     }, { status: 400 });
   }
-  const photoPath = rawPhotoPath;
 
-  const archetype = ((styleSession?.date_prep_result as Record<string, unknown>)?.data as Record<string, unknown>)?.archetype as string
-    || (lastScan?.appearance_result as Record<string, unknown>)?.faceShape as string
-    || 'The Sharp Minimalist';
-  const voiceFixes: string[] = ((voiceSession?.voice_result as Record<string, unknown>)?.improvementsList as string[]) || [];
+  // Get style archetype from cached style profile
+  const styleProfileSession = styleSession?.find((s: Record<string, unknown>) => {
+    const type = (s.date_prep_result as Record<string, unknown> | null)?.type;
+    return typeof type === 'string' && type.startsWith('style_profile');
+  });
+  const archetype = (styleProfileSession?.date_prep_result as Record<string, unknown> | null)?.data
+    ? ((styleProfileSession!.date_prep_result as Record<string, unknown>).data as Record<string, unknown>)?.archetype as string
+    : (lastScan?.appearance_result as Record<string, unknown>)?.faceShape as string || 'The Confident Minimalist';
+
+  const voiceResult = voiceSession?.voice_result as Record<string, unknown> | null;
+  const voiceFixes: string[] = (voiceResult?.improvementsList as string[]) || [];
+  const voiceStrengths: string[] = (voiceResult?.strengthsList as string[]) || [];
+  const audioPath = voiceResult?.audioStoragePath as string | null;
   const goal: string = (profile?.goals as string[])?.[0] || '';
-  const userName: string = (profile as Record<string, unknown>)?.full_name as string
-    || user.email?.split('@')[0] || '';
 
   try {
-    // 1. Generate script
-    const script = await buildScript(archetype, voiceFixes, goal);
-
     const admin = createAdminClient();
-    const cachedIdPath = `${user.id}/heygen_photo_id_${photoPath.replace(/\//g, '_')}.txt`;
 
-    // 2. Check for cached talking_photo_id (skip if force=1)
+    // 1. Build script — shaped by their archetype, voice coaching, and strengths
+    const script = await buildScript(archetype, voiceFixes, goal, voiceStrengths);
+    console.log('[avatar/generate] script:', script);
+
+    // 2. Get/upload talking photo (face personalization)
+    const cachedPhotoIdPath = `${user.id}/heygen_photo_id_${rawPhotoPath.replace(/\//g, '_')}.txt`;
     let talkingPhotoId: string | undefined;
+
     if (!forceUpload) {
       try {
-        const { data: cached } = await admin.storage.from('face-scans').download(cachedIdPath);
+        const { data: cached } = await admin.storage.from('face-scans').download(cachedPhotoIdPath);
         if (cached) {
           const id = (await cached.text()).trim();
           if (id) talkingPhotoId = id;
         }
       } catch { /* no cache */ }
     }
-    console.log('[avatar/generate] cached talkingPhotoId:', talkingPhotoId ?? 'none', '| forceUpload:', forceUpload);
-
-    // 3. If no cached talking_photo_id, try to upload; fall back to named avatar
-    let avatarCharacter: Record<string, unknown>;
+    console.log('[avatar/generate] talkingPhotoId from cache:', talkingPhotoId ?? 'none');
 
     if (!talkingPhotoId) {
       const { data: signedData, error: signErr } = await admin.storage
-        .from('face-scans').createSignedUrl(photoPath, 600);
-      if (signErr || !signedData?.signedUrl) throw new Error('Could not access face photo. Try re-scanning.');
+        .from('face-scans').createSignedUrl(rawPhotoPath, 600);
+      if (signErr || !signedData?.signedUrl) {
+        throw new Error('Could not access your face scan. Please redo your Face Scan and try again.');
+      }
 
       const photoRes = await fetch(signedData.signedUrl);
-      if (!photoRes.ok) throw new Error('Could not download face photo from storage.');
+      if (!photoRes.ok) throw new Error('Could not retrieve your face scan photo.');
       const photoBuffer = Buffer.from(await photoRes.arrayBuffer());
-      // Strip any extra params from content-type (e.g. "image/jpeg; charset=utf-8" → "image/jpeg")
       const rawMime = photoRes.headers.get('content-type') || 'image/jpeg';
       const photoMime = rawMime.split(';')[0].trim() || 'image/jpeg';
 
-      console.log('[avatar/generate] uploading photo, size:', photoBuffer.length, 'mime:', photoMime, 'path:', photoPath);
+      console.log('[avatar/generate] uploading photo, size:', photoBuffer.length, 'mime:', photoMime);
 
       const uploadRes = await fetch('https://upload.heygen.com/v1/talking_photo', {
         method: 'POST',
@@ -147,39 +216,70 @@ export async function POST(request: Request) {
         body: photoBuffer,
       });
       const uploadText = await uploadRes.text();
-      console.log('[avatar/generate] talking_photo upload status:', uploadRes.status, uploadText.slice(0, 300));
+      console.log('[avatar/generate] talking_photo upload:', uploadRes.status, uploadText.slice(0, 300));
 
       let uploadData: { code?: number; data?: { talking_photo_id?: string }; message?: string } = {};
       try { uploadData = JSON.parse(uploadText); } catch {
-        throw new Error(`Photo upload failed (${uploadRes.status}): ${uploadText.slice(0, 200)}`);
+        throw new Error(`Photo upload failed (${uploadRes.status}): ${uploadText.slice(0, 150)}`);
       }
       talkingPhotoId = uploadData.data?.talking_photo_id;
 
       if (talkingPhotoId) {
         await admin.storage.from('face-scans').upload(
-          cachedIdPath, Buffer.from(talkingPhotoId), { contentType: 'text/plain', upsert: true }
+          cachedPhotoIdPath,
+          Buffer.from(talkingPhotoId),
+          { contentType: 'text/plain', upsert: true }
         );
       } else {
-        console.error('[avatar/generate] No talking_photo_id in response:', JSON.stringify(uploadData));
+        throw new Error(
+          `Could not process your face scan photo (${uploadData.message || 'upload rejected'}). ` +
+          'Please redo your Face Scan with a clear, front-facing, well-lit photo.'
+        );
       }
     }
 
-    if (!talkingPhotoId) {
-      throw new Error('Could not upload your Face Scan photo for personalization. Please redo your Face Scan with a clear, front-facing photo and try again.');
+    // 3. Clone user's voice from their recording (best effort — falls back to preset)
+    const cachedVoiceIdPath = audioPath
+      ? `${user.id}/cloned_voice_id_${audioPath.replace(/\//g, '_')}.txt`
+      : null;
+
+    let clonedVoiceId: string | null = null;
+
+    if (cachedVoiceIdPath && !forceUpload) {
+      try {
+        const { data: cachedVoice } = await admin.storage.from('face-scans').download(cachedVoiceIdPath);
+        if (cachedVoice) {
+          const id = (await cachedVoice.text()).trim();
+          if (id) clonedVoiceId = id;
+        }
+      } catch { /* no cache */ }
     }
-    avatarCharacter = { type: 'talking_photo', talking_photo_id: talkingPhotoId };
 
-    // 4. Pick a voice — prefer user's own cloned voice matched by name
-    const voiceId = await getPresetVoice(userName);
-    if (!voiceId) throw new Error('No voice available from HeyGen');
+    if (!clonedVoiceId && audioPath) {
+      clonedVoiceId = await cloneVoiceFromRecording(admin, user.id, audioPath);
+      if (clonedVoiceId && cachedVoiceIdPath) {
+        // Cache for reuse
+        await admin.storage.from('face-scans').upload(
+          cachedVoiceIdPath,
+          Buffer.from(clonedVoiceId),
+          { contentType: 'text/plain', upsert: true }
+        ).catch(() => {});
+      }
+    }
 
-    // 5. Generate video
+    const voiceId = clonedVoiceId ?? await getPresetVoice();
+    const usingClonedVoice = !!clonedVoiceId;
+    console.log('[avatar/generate] voice:', usingClonedVoice ? `cloned (${voiceId})` : `preset (${voiceId})`);
+
+    if (!voiceId) throw new Error('No voice available. Please try again.');
+
+    // 4. Generate video
     const videoRes = await fetch('https://api.heygen.com/v2/video/generate', {
       method: 'POST',
       headers: { 'X-Api-Key': HEYGEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         video_inputs: [{
-          character: avatarCharacter,
+          character: { type: 'talking_photo', talking_photo_id: talkingPhotoId },
           voice: {
             type: 'text',
             input_text: script,
@@ -192,15 +292,18 @@ export async function POST(request: Request) {
         test: false,
       }),
     });
+
     const videoText = await videoRes.text();
     let videoData: { data?: { video_id?: string }; error?: { message?: string } } = {};
     try { videoData = JSON.parse(videoText); } catch {
-      throw new Error(`HeyGen video returned non-JSON (status ${videoRes.status}): ${videoText.slice(0, 200)}`);
+      throw new Error(`Video generation failed (${videoRes.status}): ${videoText.slice(0, 150)}`);
     }
-    const videoId = videoData.data?.video_id;
-    if (!videoId) throw new Error(`Video generation failed: ${JSON.stringify(videoData)}`);
 
-    return NextResponse.json({ videoId, script });
+    const videoId = videoData.data?.video_id;
+    if (!videoId) throw new Error(`Video generation failed: ${JSON.stringify(videoData).slice(0, 200)}`);
+
+    return NextResponse.json({ videoId, script, usingClonedVoice });
+
   } catch (err) {
     console.error('[avatar/generate]', err);
     return NextResponse.json(

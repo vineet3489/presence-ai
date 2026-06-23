@@ -16,6 +16,7 @@ export function AvatarCard() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [script, setScript] = useState<string | null>(null);
+  const [usingClonedVoice, setUsingClonedVoice] = useState(false);
   const [error, setError] = useState('');
   const [renderPct, setRenderPct] = useState(0);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,7 +96,7 @@ export function AvatarCard() {
 
     const url = force ? '/api/avatar/generate?force=1' : '/api/avatar/generate';
     const res = await fetch(url, { method: 'POST' });
-    let data: { videoId?: string; script?: string; error?: string; message?: string } = {};
+    let data: { videoId?: string; script?: string; usingClonedVoice?: boolean; error?: string; message?: string } = {};
     try { data = await res.json(); } catch {
       setError('Server error — try again');
       setPhase('error');
@@ -108,9 +109,10 @@ export function AvatarCard() {
       return;
     }
 
-    const { videoId, script: s } = data;
+    const { videoId, script: s, usingClonedVoice: cloned } = data;
     if (!videoId) { setError('No video ID returned'); setPhase('error'); return; }
     setScript(s ?? null);
+    setUsingClonedVoice(!!cloned);
     localStorage.setItem('avatar_video_id', videoId);
     startPolling(videoId);
   }
@@ -160,9 +162,9 @@ export function AvatarCard() {
         )}
 
         <div className="px-4 pb-4">
-          <p className="text-xs text-slate-600 text-center">
-            <Volume2 size={10} className="inline mr-1" />
-            Your face · your voice coaching · AI-generated
+          <p className="text-xs text-slate-600 text-center flex items-center justify-center gap-1">
+            <Volume2 size={10} />
+            Your face · {usingClonedVoice ? 'your cloned voice' : 'AI voice'} · confidence coaching applied
           </p>
         </div>
       </div>
@@ -220,9 +222,9 @@ export function AvatarCard() {
 
       <div className="space-y-1.5 mb-5">
         {[
-          'Built from your face scan photo',
-          'Script matches your style archetype',
-          'Voice coaching applied — zero fillers',
+          'Your actual face from your last scan',
+          'Your voice cloned from your Voice Check recording',
+          'Script written for your archetype — zero fillers, peak confidence',
         ].map((item, i) => (
           <div key={i} className="flex items-center gap-2 text-xs text-slate-400">
             <div className="w-1 h-1 rounded-full bg-violet-500 shrink-0" />
