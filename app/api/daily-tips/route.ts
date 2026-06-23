@@ -3,15 +3,16 @@ import { createClient } from '@/lib/supabase/server';
 import { callClaude } from '@/lib/claude/client';
 import { DAILY_TIPS_SYSTEM_PROMPT, buildDailyTipsPrompt } from '@/lib/claude/prompts';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const today = new Date().toISOString().split('T')[0];
+    const forceReset = new URL(request.url).searchParams.get('reset') === '1';
 
-    // Return existing tips if already generated today
+    // Return existing tips if already generated today (and not forcing reset)
     const { data: existing } = await supabase
       .from('daily_tips')
       .select('*')
@@ -19,11 +20,15 @@ export async function GET() {
       .eq('date', today)
       .order('created_at');
 
-    if (existing && existing.length === 3) {
-      return NextResponse.json({ tips: existing });
+    if (!forceReset && existing && existing.length === 3) {
+      // Validate that today's tips use current categories; regenerate if they use old 'voice' category
+      const hasOldVoiceCategory = existing.some(t => t.category === 'voice');
+      if (!hasOldVoiceCategory) {
+        return NextResponse.json({ tips: existing });
+      }
     }
 
-    // Delete partial tips for today (edge case) and regenerate
+    // Delete tips for today and regenerate (handles partial, stale categories, or reset)
     if (existing && existing.length > 0) {
       await supabase.from('daily_tips').delete().eq('user_id', user.id).eq('date', today);
     }

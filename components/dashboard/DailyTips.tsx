@@ -1,16 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Mic, Sparkles, Heart, Check, Flame, Loader2, Star } from 'lucide-react';
+import { Mic, Sparkles, Heart, Check, Flame, Loader2, Star, MessageSquare } from 'lucide-react';
 
 interface Tip {
   id: string;
-  category: 'voice' | 'aura' | 'dating';
+  category: string;
   tip_text: string;
   completed: boolean;
 }
 
-const CATEGORY = {
+type CategoryConfig = { icon: React.ElementType; label: string; color: string; bg: string; border: string; glow: string };
+
+const CATEGORY: Record<string, CategoryConfig> = {
+  phrase: {
+    icon: MessageSquare,
+    label: 'Phrase of the Day',
+    color: 'text-sky-400',
+    bg: 'bg-sky-950/60',
+    border: 'border-sky-800/50',
+    glow: 'shadow-sky-900/40',
+  },
   voice: {
     icon: Mic,
     label: 'Voice Training',
@@ -18,7 +28,6 @@ const CATEGORY = {
     bg: 'bg-sky-950/60',
     border: 'border-sky-800/50',
     glow: 'shadow-sky-900/40',
-    ring: 'ring-sky-500',
   },
   aura: {
     icon: Sparkles,
@@ -27,7 +36,6 @@ const CATEGORY = {
     bg: 'bg-violet-950/60',
     border: 'border-violet-800/50',
     glow: 'shadow-violet-900/40',
-    ring: 'ring-violet-500',
   },
   dating: {
     icon: Heart,
@@ -36,8 +44,16 @@ const CATEGORY = {
     bg: 'bg-pink-950/60',
     border: 'border-pink-800/50',
     glow: 'shadow-pink-900/40',
-    ring: 'ring-pink-500',
   },
+};
+
+const DEFAULT_CFG: CategoryConfig = {
+  icon: Sparkles,
+  label: 'Daily Tip',
+  color: 'text-slate-400',
+  bg: 'bg-slate-900/60',
+  border: 'border-slate-800',
+  glow: 'shadow-slate-900/40',
 };
 
 interface Props {
@@ -81,13 +97,22 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
   }
 
   const doneCount = tips.filter((t) => t.completed).length;
-  const allDone = doneCount === 3 && tips.length === 3;
+  const total = tips.length || 3;
+  const allDone = doneCount === total && total > 0;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10 gap-2 text-slate-500">
         <Loader2 size={16} className="animate-spin" />
         <span className="text-sm">Loading today&apos;s tips…</span>
+      </div>
+    );
+  }
+
+  if (tips.length === 0) {
+    return (
+      <div className="py-6 text-center">
+        <p className="text-slate-500 text-sm">No tips yet — check back in a moment.</p>
       </div>
     );
   }
@@ -110,7 +135,7 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
       <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-violet-500 to-pink-500 rounded-full transition-all duration-700"
-          style={{ width: `${(doneCount / 3) * 100}%` }}
+          style={{ width: `${(doneCount / total) * 100}%` }}
         />
       </div>
 
@@ -123,7 +148,7 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
 
       {/* Tip cards */}
       {tips.map((tip, i) => {
-        const cfg = CATEGORY[tip.category];
+        const cfg = CATEGORY[tip.category] ?? DEFAULT_CFG;
         const Icon = cfg.icon;
         const isBursting = xpBurst === tip.id;
 
@@ -136,12 +161,10 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
             style={{ animationDelay: `${i * 80}ms` }}
           >
             <div className="flex items-start gap-3">
-              {/* Category icon */}
               <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${cfg.bg} border ${cfg.border} mt-0.5`}>
                 <Icon size={14} className={cfg.color} />
               </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-bold uppercase tracking-widest mb-1.5 ${cfg.color}`}>
                   {cfg.label}
@@ -149,7 +172,6 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
                 <p className="text-slate-200 text-sm leading-relaxed">{tip.tip_text}</p>
               </div>
 
-              {/* Done button */}
               <div className="shrink-0 relative">
                 {tip.completed ? (
                   <div className="w-8 h-8 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center">
@@ -160,7 +182,7 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
                     onClick={() => markDone(tip.id)}
                     disabled={completing === tip.id}
                     title="Mark as done"
-                    className={`group w-8 h-8 rounded-full border border-slate-700 hover:border-green-500 hover:bg-green-500/10 flex items-center justify-center transition-all duration-200 disabled:opacity-40`}
+                    className="group w-8 h-8 rounded-full border border-slate-700 hover:border-green-500 hover:bg-green-500/10 flex items-center justify-center transition-all duration-200 disabled:opacity-40"
                   >
                     {completing === tip.id ? (
                       <Loader2 size={12} className="animate-spin text-slate-400" />
@@ -172,7 +194,6 @@ export function DailyTips({ initialXp, initialStreak }: Props) {
               </div>
             </div>
 
-            {/* XP burst */}
             {isBursting && (
               <div className="absolute top-2 right-2 text-xs font-black text-green-400 animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-none">
                 +5 XP
