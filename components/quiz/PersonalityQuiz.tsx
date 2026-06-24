@@ -8,9 +8,20 @@ import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const CHOICE_STEPS = [
   {
+    id: 'primary_goal',
+    emoji: '🎯',
+    text: "What are you here to fix?",
+    subtext: "This shapes your entire 90-day coaching plan.",
+    options: [
+      { label: 'Dating & attracting women', sub: 'Approach, first dates, keeping interest', value: 'dating' },
+      { label: 'Level up my overall vibe', sub: 'Confidence, presence, magnetism', value: 'confidence' },
+      { label: 'Nail interviews & career', sub: 'Authority, clarity, professional edge', value: 'career' },
+    ],
+  },
+  {
     id: 'vibe',
     emoji: '⚡',
-    text: "First things first — what's your energy?",
+    text: "What's your natural style energy?",
     subtext: 'Pick the one that feels most you.',
     options: [
       { label: 'The quiet storm', sub: 'Effortless, understated cool', value: 'classic' },
@@ -21,7 +32,7 @@ const CHOICE_STEPS = [
   },
   {
     id: 'social',
-    emoji: '🎯',
+    emoji: '🤝',
     text: 'Your natural social move?',
     subtext: 'How people actually experience you.',
     options: [
@@ -37,34 +48,22 @@ const CHOICE_STEPS = [
     text: "What's your social kryptonite?",
     subtext: 'Be honest — this is how we fix it.',
     options: [
-      { label: 'Going first / breaking the ice', sub: 'Hard to make the first move', value: 'going_first' },
-      { label: 'Keeping the conversation going', sub: 'Small talk dries up fast', value: 'sustaining' },
-      { label: "Reading if they're into me", sub: "Can't tell what they're thinking", value: 'reading_room' },
-      { label: 'Following up after', sub: 'Lose momentum after first contact', value: 'follow_up' },
+      { label: 'Breaking the ice / going first', sub: "Hard to make the first move", value: 'going_first' },
+      { label: 'Keeping the conversation alive', sub: 'Small talk dries up fast', value: 'sustaining' },
+      { label: 'Texting someone I like', sub: "Don't know what to say or when", value: 'texting' },
+      { label: 'First dates — the whole thing', sub: 'Nerves, topics, when to escalate', value: 'first_dates' },
     ],
   },
   {
     id: 'openness',
     emoji: '🔥',
-    text: 'How do you roll with new experiences?',
-    subtext: 'Style, people, situations — all of it.',
+    text: 'How open are you to trying new things?',
+    subtext: 'Style, situations, people — all of it.',
     options: [
       { label: "I'm down for anything", sub: 'First to try something new', value: '5' },
       { label: 'Open, but on my own terms', sub: 'Selective but curious', value: '4' },
       { label: 'I like what I know', sub: 'Comfort over novelty', value: '3' },
       { label: "Tried it. Didn't need to.", sub: 'Deliberately classic', value: '2' },
-    ],
-  },
-  {
-    id: 'goals',
-    emoji: '🏆',
-    text: "What are you actually here for?",
-    subtext: "Pick your main thing — we'll build around it.",
-    options: [
-      { label: 'Look more put-together', sub: 'Style, grooming, first impressions', value: 'look more put-together' },
-      { label: 'Sound more confident', sub: 'Voice, tone, how I come across', value: 'sound more confident' },
-      { label: 'Date and attract better', sub: 'Magnetism, connection, keeping interest', value: 'date and connect better' },
-      { label: 'Full glow-up', sub: 'All of the above, no shortcuts', value: 'full presence glow-up' },
     ],
   },
 ];
@@ -124,19 +123,19 @@ export function PersonalityQuiz({ userId }: { userId: string }) {
         streetwear: 'streetwear',
       };
 
+      const primaryGoalValue = choiceAnswers.primary_goal || 'dating';
       const supabase = createClient();
       const { error: saveError } = await supabase.from('user_profiles').upsert({
         user_id: userId,
+        primary_goal: primaryGoalValue,
         big_five: bigFive,
         style_preference: styleMap[choiceAnswers.vibe] || 'smart-casual',
-        goals: [choiceAnswers.goals].filter(Boolean),
+        goals: [primaryGoalValue === 'dating' ? 'date and connect better' : primaryGoalValue === 'career' ? 'nail interviews and career' : 'full presence glow-up'],
         age: info.age ? parseInt(info.age, 10) : null,
         city: info.city.trim() || null,
         occupation: info.occupation.trim() || null,
         education: info.education.trim() || null,
         onboarding_completed: true,
-        // subscription_status intentionally NOT set here — stays 'none' until
-        // user authorises Razorpay mandate on the /trial page
       });
       if (saveError) throw saveError;
       router.push('/dashboard');

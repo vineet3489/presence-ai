@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
+import { BiometricConsentModal } from '@/components/ui/BiometricConsentModal';
 import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles } from 'lucide-react';
 
 type Objective = 'date' | 'interview' | 'general';
@@ -47,6 +48,7 @@ const ANALYSIS_STAGES = [
 
 export default function FaceScanPage() {
   const [state, setState] = useState<State>('loading');
+  const [showConsent, setShowConsent] = useState(false);
   const [objective, setObjective] = useState<Objective | null>(null);
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [capturedMediaType, setCapturedMediaType] = useState<'image/jpeg' | 'image/png'>('image/jpeg');
@@ -62,6 +64,10 @@ export default function FaceScanPage() {
 
   useEffect(() => {
     const supabase = createClient();
+    // Check biometric consent
+    supabase.from('user_profiles').select('biometric_consent_at').single().then(({ data }) => {
+      if (!(data as Record<string, unknown> | null)?.biometric_consent_at) setShowConsent(true);
+    });
     supabase
       .from('analysis_sessions')
       .select('id, appearance_result, appearance_score, created_at')
@@ -148,6 +154,9 @@ export default function FaceScanPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      {showConsent && (
+        <BiometricConsentModal onConsent={() => setShowConsent(false)} />
+      )}
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl md:text-3xl font-black text-white">Face Scan</h1>
         <p className="text-slate-400 mt-1 text-sm md:text-base">

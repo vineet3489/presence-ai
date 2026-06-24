@@ -3,16 +3,17 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart, Users, BarChart2, Sparkles, Settings } from 'lucide-react';
+import { LayoutDashboard, Camera, Mic, Heart, TrendingUp, LogOut, MessageCircleHeart, Users, BarChart2, Sparkles, Settings, Shirt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/face-scan', label: 'Face Scan', icon: Camera },
-  { href: '/style-profile', label: 'Style Profile', icon: Sparkles, highlight: true },
   { href: '/voice-check', label: 'Voice Check', icon: Mic },
-  { href: '/roleplay', label: 'Roleplay', icon: Users },
+  { href: '/style-profile', label: 'Style Profile', icon: Sparkles, highlight: true },
+  { href: '/outfit-builder', label: 'Outfit Builder', icon: Shirt },
+  { href: '/roleplay', label: 'Practice', icon: Users },
   { href: '/date-prep', label: 'Date Prep', icon: Heart },
   { href: '/chat-coach', label: 'Chat Coach', icon: MessageCircleHeart },
   { href: '/progress', label: 'Progress', icon: TrendingUp },

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Button } from '@/components/ui/button';
+import { BiometricConsentModal } from '@/components/ui/BiometricConsentModal';
 import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { VoiceResult } from '@/types';
@@ -45,6 +46,7 @@ function AudioPlayer({ path }: { path: string }) {
 
 export default function VoiceCheckPage() {
   const [state, setState] = useState<State>('loading');
+  const [showConsent, setShowConsent] = useState(false);
   const [objective, setObjective] = useState<Objective | null>(null);
   const [result, setResult] = useState<VoiceResult | null>(null);
   const [score, setScore] = useState(0);
@@ -72,6 +74,9 @@ export default function VoiceCheckPage() {
 
   useEffect(() => {
     const supabase = createClient();
+    supabase.from('user_profiles').select('biometric_consent_at').single().then(({ data }) => {
+      if (!(data as Record<string, unknown> | null)?.biometric_consent_at) setShowConsent(true);
+    });
     supabase
       .from('analysis_sessions')
       .select('id, voice_result, voice_score, created_at')
@@ -151,6 +156,7 @@ export default function VoiceCheckPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      {showConsent && <BiometricConsentModal onConsent={() => setShowConsent(false)} />}
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl md:text-3xl font-black text-white">Voice Check</h1>
         <p className="text-slate-400 mt-1 text-sm md:text-base">

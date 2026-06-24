@@ -21,10 +21,11 @@ export async function POST(request: NextRequest) {
 
     const [voiceData, { data: profile }] = await Promise.all([
       Promise.resolve({ transcript, durationSeconds: durationSeconds || 60 }),
-      supabase.from('user_profiles').select('age, city').eq('user_id', user.id).single(),
+      supabase.from('user_profiles').select('age, city, coaching_memory').eq('user_id', user.id).single(),
     ]);
+    const memory = (profile as Record<string, unknown> | null)?.coaching_memory as import('@/lib/claude/client').CoachingMemory | null;
     const prompt = buildVoicePrompt(voiceData, profile, objective ?? null);
-    const raw = await callClaude(VOICE_SYSTEM_PROMPT, prompt, 2000);
+    const raw = await callClaude(VOICE_SYSTEM_PROMPT, prompt, 2000, memory);
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Could not parse Claude response');
@@ -48,6 +49,26 @@ export async function POST(request: NextRequest) {
       })
       .select('id')
       .single();
+
+    // Update coaching memory
+    if (session?.id) {
+      const currentMemory = (memory ?? { patterns: {}, history: [], coach_observations: [] }) as import('@/lib/claude/client').CoachingMemory;
+      const fillersList = result.fillerWords?.map((f: { word: string }) => f.word) ?? [];
+      const history = [...(currentMemory.history ?? []), {
+        date: new Date().toISOString().split('T')[0],
+        type: 'voice_check',
+        score,
+        key_insight: result.overallCoaching?.slice(0, 120) ?? '',
+      }].slice(-50);
+      const patterns = {
+        ...currentMemory.patterns,
+        ...(fillersList.length ? { filler_words: fillersList.join(', ') } : {}),
+        voice_pace: `${result.paceWpm ?? 0} WPM`,
+      };
+      void supabase.from('user_profiles').update({
+        coaching_memory: { ...currentMemory, history, patterns },
+      }).eq('user_id', user.id);
+    }
 
     return NextResponse.json({ result, score, sessionId: session?.id });
   } catch (err) {

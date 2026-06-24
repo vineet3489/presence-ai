@@ -26,13 +26,15 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
+    const memory = (profile as Record<string, unknown> | null)?.coaching_memory ?? null;
     const prompt = buildAppearancePrompt(profile, objective ?? null);
     const raw = await callClaudeWithImage(
       APPEARANCE_SYSTEM_PROMPT,
       prompt,
       imageBase64,
       mediaType,
-      2000
+      2000,
+      memory as import('@/lib/claude/client').CoachingMemory
     );
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -73,6 +75,20 @@ export async function POST(request: NextRequest) {
           .update({ appearance_result: { ...result, photoStoragePath: photoPath } })
           .eq('id', session.id),
       ]).catch(e => console.error('Photo finalize error (non-fatal):', e));
+    }
+
+    // Update coaching memory with this scan's key insight
+    if (session?.id) {
+      const currentMemory = ((profile as Record<string, unknown> | null)?.coaching_memory ?? { patterns: {}, history: [], coach_observations: [] }) as import('@/lib/claude/client').CoachingMemory;
+      const history = [...(currentMemory.history ?? []), {
+        date: new Date().toISOString().split('T')[0],
+        type: 'appearance_scan',
+        score,
+        key_insight: result.overallCoaching?.slice(0, 120) ?? '',
+      }].slice(-50);
+      void supabase.from('user_profiles').update({
+        coaching_memory: { ...currentMemory, history },
+      }).eq('user_id', user.id);
     }
 
     return NextResponse.json({ result, score, sessionId: session?.id });
