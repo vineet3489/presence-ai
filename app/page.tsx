@@ -1,78 +1,134 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Camera, Mic, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react';
+import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, Target, TrendingUp } from 'lucide-react';
 import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
-/* ─── Mock output cards shown in the hero / feature sections ─── */
+/* ── Mock visuals ── */
 
-function MockActionPlan() {
-  const fixes = [
-    { icon: '✦', label: 'Grooming', color: '#a78bfa', text: 'Clean up the beard line — it\'s softening your jaw' },
-    { icon: '◈', label: 'Posture', color: '#38bdf8', text: 'Drop your shoulders — you\'re carrying tension visibly' },
-    { icon: '◉', label: 'Voice', color: '#fbbf24', text: 'Cut the "um"s — pause instead, you\'ll sound 10× sharper' },
-  ];
+function MockAvatarPreview() {
   return (
-    <div className="rounded-2xl border border-amber-700/40 bg-gradient-to-br from-amber-950/40 to-slate-900 p-5 w-full max-w-sm shadow-2xl">
-      <div className="flex items-center gap-2 mb-3">
-        <Zap size={14} className="text-amber-400" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Your Action Plan</span>
-      </div>
-      <p className="text-white font-bold text-sm mb-4">Fix these to get more dates</p>
-      <div className="space-y-2">
-        {fixes.map((f, i) => (
-          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-            <span className="text-sm shrink-0" style={{ color: f.color }}>{f.icon}</span>
-            <div className="min-w-0">
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{f.label}</p>
-              <p className="text-xs text-white font-medium leading-snug">{f.text}</p>
+    <div className="relative mx-auto w-56">
+      {/* Phone frame */}
+      <div className="rounded-[2.5rem] border-4 border-slate-700 bg-slate-900 overflow-hidden shadow-2xl shadow-violet-950/40">
+        {/* Screen */}
+        <div className="bg-slate-950 aspect-[9/16] relative flex flex-col items-center justify-end pb-6">
+          {/* Dark background with person silhouette */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
+            {/* Subtle aura glow */}
+            <div className="absolute inset-x-0 top-8 flex justify-center">
+              <div className="w-32 h-32 rounded-full bg-violet-500/10 blur-2xl" />
+            </div>
+            {/* Person silhouette placeholder */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pt-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 border-2 border-violet-500/30" />
+              <div className="w-10 h-20 rounded-t-xl bg-gradient-to-b from-slate-600 to-slate-700/60 border border-slate-600/40" />
             </div>
           </div>
+
+          {/* Playing indicator */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+            <div className="flex items-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[10px] text-white font-semibold">LIVE</span>
+            </div>
+            <span className="text-[10px] text-slate-400 bg-black/50 rounded-full px-2 py-1">0:15</span>
+          </div>
+
+          {/* Speech bubble */}
+          <div className="absolute bottom-16 left-3 right-3 z-10">
+            <div className="bg-black/70 backdrop-blur-sm rounded-xl px-3 py-2.5 border border-slate-700/50">
+              <p className="text-xs text-white leading-relaxed italic">
+                &ldquo;I walk into every room knowing exactly who I am…&rdquo;
+              </p>
+            </div>
+          </div>
+
+          {/* Watermark */}
+          <div className="relative z-10 flex items-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1">
+            <div className="w-3 h-3 rounded-full bg-violet-500" />
+            <span className="text-[9px] text-slate-300 font-semibold">PresenceAI</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating badges */}
+      <div className="absolute -left-8 top-12 bg-emerald-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
+        ✓ Your actual face
+      </div>
+      <div className="absolute -right-10 top-28 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
+        Your cloned voice
+      </div>
+      <div className="absolute -left-10 bottom-16 bg-amber-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
+        +18 DRI this month
+      </div>
+    </div>
+  );
+}
+
+function MockMissionCard() {
+  return (
+    <div className="rounded-2xl border border-amber-700/40 bg-gradient-to-br from-amber-950/40 to-slate-900 p-5 w-full max-w-sm shadow-2xl">
+      <div className="flex items-center gap-2 mb-1">
+        <Zap size={13} className="text-amber-400" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Today&apos;s Mission · Wednesday</span>
+      </div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white font-bold text-sm">Voice Challenge</p>
+        <span className="text-[10px] text-amber-400 bg-amber-900/40 border border-amber-800/30 rounded-full px-2 py-0.5 font-bold">+25 XP</span>
+      </div>
+      <p className="text-xs text-slate-300 leading-relaxed mb-4">
+        Record yourself ordering a coffee. No fillers. Confident tone. Send us the clip.
+      </p>
+      <p className="text-[10px] text-slate-500 mb-3">
+        Your filler rate is 8%. Real-world pressure is where it drops to 2%.
+      </p>
+      <div className="w-full h-9 rounded-xl bg-amber-600/80 flex items-center justify-center gap-2">
+        <CheckCircle2 size={13} className="text-white" />
+        <span className="text-xs text-white font-semibold">Mark Done</span>
+      </div>
+    </div>
+  );
+}
+
+function MockRoadmap() {
+  const weeks = [
+    { n: 1, label: 'Appearance Foundation', done: true },
+    { n: 2, label: 'Voice & Presence', done: true },
+    { n: 3, label: 'Confidence & Body Language', current: true },
+    { n: 4, label: 'Conversation Skills', locked: true },
+  ];
+  return (
+    <div className="rounded-2xl border border-violet-700/40 bg-gradient-to-br from-violet-950/40 to-slate-900 p-5 w-full max-w-sm shadow-2xl">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">90-Day Plan</p>
+          <p className="text-white font-bold text-sm mt-0.5">Dating Goal · Week 3</p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-black text-white">72</p>
+          <p className="text-[10px] text-emerald-400 font-bold">+4 this week ↑</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {weeks.map(w => (
+          <div key={w.n} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+            w.current
+              ? 'border-violet-500/60 bg-violet-900/30'
+              : w.done
+              ? 'border-emerald-800/30 bg-emerald-950/10'
+              : 'border-slate-800 bg-slate-900/30 opacity-50'
+          }`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black ${
+              w.done ? 'bg-emerald-500 text-white' : w.current ? 'bg-violet-600 text-white' : 'bg-slate-800 text-slate-600'
+            }`}>
+              {w.done ? '✓' : w.n}
+            </div>
+            <p className={`text-xs font-medium ${w.done ? 'text-emerald-400' : w.current ? 'text-white' : 'text-slate-600'}`}>
+              {w.label}
+            </p>
+            {w.current && <span className="ml-auto text-[9px] text-violet-400 font-bold bg-violet-900/50 rounded-full px-1.5 py-0.5">NOW</span>}
+          </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function MockStyleCard() {
-  return (
-    <div className="rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-950/50 to-slate-900 overflow-hidden w-full max-w-[220px] shadow-2xl">
-      {/* Gradient placeholder for the look image */}
-      <div className="h-52 bg-gradient-to-br from-violet-900/60 via-slate-800 to-slate-900 flex items-center justify-center relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
-        <div className="relative z-10 flex flex-col items-center gap-2">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500/30 to-slate-700 border-2 border-violet-500/40" />
-          <div className="w-8 h-16 rounded-lg bg-gradient-to-b from-violet-500/20 to-slate-700/40 border border-violet-500/20" />
-        </div>
-        <div className="absolute bottom-3 left-3 right-3">
-          <span className="text-[10px] text-violet-300 font-semibold bg-violet-900/60 border border-violet-700/40 rounded-full px-2 py-0.5">AI Generated · Your exact face</span>
-        </div>
-      </div>
-      <div className="p-3">
-        <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider mb-0.5">Your Archetype</p>
-        <p className="text-white font-bold text-sm">The Sharp Minimalist</p>
-        <p className="text-slate-500 text-xs mt-0.5">Navy · Charcoal · Bone</p>
-      </div>
-    </div>
-  );
-}
-
-function MockScoreCard() {
-  return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 flex items-center gap-4 w-full max-w-xs shadow-xl">
-      <div className="relative w-16 h-16 shrink-0">
-        <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r="26" fill="none" stroke="#1e1b4b" strokeWidth="5" />
-          <circle cx="32" cy="32" r="26" fill="none" stroke="#8b5cf6" strokeWidth="5"
-            strokeLinecap="round" strokeDasharray="163.4" strokeDashoffset="40.8" />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-black text-white">75</span>
-        </div>
-      </div>
-      <div>
-        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Presence Score</p>
-        <p className="text-violet-300 font-bold text-sm">Strong</p>
-        <p className="text-slate-400 text-xs mt-1">+12 pts last week</p>
       </div>
     </div>
   );
@@ -91,9 +147,9 @@ export default function LandingPage() {
           <Link href="/login">
             <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">Sign in</Button>
           </Link>
-          <Link href="/login">
+          <Link href="/avatar-preview">
             <Button size="sm" className="bg-violet-600 hover:bg-violet-500 gap-1.5">
-              Get started free <ArrowRight size={14} />
+              Try free <ArrowRight size={14} />
             </Button>
           </Link>
         </div>
@@ -101,37 +157,42 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="max-w-6xl mx-auto px-5 pt-16 pb-20 md:pt-24">
-        <div className="flex flex-col md:flex-row items-center gap-12">
+        <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
 
           {/* Left copy */}
           <div className="flex-1 text-center md:text-left">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-700/50 bg-violet-900/20 px-4 py-1.5 text-xs text-violet-300 font-semibold mb-6">
-              <Zap size={12} />
-              Know exactly what to fix — in 60 seconds
+              <Play size={11} className="fill-violet-400 text-violet-400" />
+              Free 15-second AI avatar — no account needed
             </div>
 
             <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.08] mb-5">
-              Stop guessing.<br />
-              <span className="gradient-text">See your fixes.</span><br />
-              Look the part.
+              See yourself at<br />
+              your most<br />
+              <span className="gradient-text">confident.</span>
             </h1>
 
             <p className="text-slate-400 text-lg md:text-xl leading-relaxed mb-8 max-w-xl">
-              Upload a photo → get 3 specific things to fix.
-              AI styles you in your ideal look.
-              Walk into every room — and every date — with an unfair advantage.
+              Upload your photo. Get a 15-second AI video of you — confident, clear, magnetic.
+              Then get a 90-day plan to make that version of you the real one.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mb-8">
+              <Link href="/avatar-preview">
+                <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-8 h-14">
+                  <Play size={16} className="fill-white text-white" />
+                  Generate My Free Avatar
+                </Button>
+              </Link>
               <Link href="/login">
-                <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-8">
-                  Scan my look free <ArrowRight size={16} />
+                <Button size="lg" variant="outline" className="gap-2 h-14 text-base">
+                  Sign in
                 </Button>
               </Link>
             </div>
 
             <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-slate-400">
-              {['No credit card', 'Results in 30 seconds', 'AI built for Indian men'].map(t => (
+              {['No account needed', 'Ready in ~2 minutes', 'Built for Indian men'].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-500" /> {t}
                 </span>
@@ -139,27 +200,21 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — mock output preview */}
-          <div className="flex-1 flex flex-col items-center gap-4 w-full">
-            <div className="flex gap-4 items-start justify-center w-full">
-              <MockStyleCard />
-              <div className="flex flex-col gap-4 pt-6">
-                <MockActionPlan />
-                <MockScoreCard />
-              </div>
-            </div>
+          {/* Right — avatar phone mockup */}
+          <div className="flex-1 flex justify-center">
+            <MockAvatarPreview />
           </div>
         </div>
       </section>
 
-      {/* ── SOCIAL PROOF STRIP ── */}
+      {/* ── PROOF STRIP ── */}
       <div className="border-y border-slate-800/60 bg-slate-900/40 py-5 px-5">
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
           {[
-            { num: '3 fixes', desc: 'found in every scan' },
-            { num: '60 sec', desc: 'to your first result' },
-            { num: 'AI look', desc: 'styled just for you' },
-            { num: '100%', desc: 'based on your face' },
+            { num: '15 sec', desc: 'AI avatar, your face' },
+            { num: '90 days', desc: 'structured coaching plan' },
+            { num: '7 AI tools', desc: 'face · voice · style · practice' },
+            { num: '₹499', desc: 'per month · cancel anytime' },
           ].map(({ num, desc }) => (
             <div key={num}>
               <p className="text-2xl font-black gradient-text">{num}</p>
@@ -169,66 +224,112 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── STYLE CHECK FEATURE (hero feature) ── */}
+      {/* ── THREE PROOF POINTS ── */}
       <section className="max-w-6xl mx-auto px-5 py-20">
-        <div className="flex flex-col md:flex-row items-center gap-12">
-
-          {/* Visual */}
-          <div className="flex-1 flex justify-center">
-            <div className="relative">
-              <div className="rounded-2xl border border-violet-700/40 bg-gradient-to-br from-violet-950/60 to-slate-900 p-6 w-72">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={14} className="text-violet-400" />
-                  <span className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">Style Profile</span>
-                </div>
-                {/* Fake look image */}
-                <div className="rounded-xl h-48 bg-gradient-to-br from-violet-900/60 via-slate-800/80 to-indigo-900/40 flex items-center justify-center mb-3 border border-violet-800/30 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-600/10 to-transparent" />
-                  <div className="flex flex-col items-center gap-1.5 z-10">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-400/30 to-slate-600 border-2 border-violet-500/40" />
-                    <div className="w-10 h-20 rounded-lg bg-gradient-to-b from-slate-600/60 to-slate-800/40 border border-slate-600/30" />
-                  </div>
-                  <div className="absolute bottom-2 inset-x-2 text-center">
-                    <span className="text-[10px] text-violet-300 bg-violet-900/70 border border-violet-700/40 rounded-full px-2 py-0.5">Generated from your face scan</span>
-                  </div>
-                </div>
-                <p className="text-white font-bold">The Sharp Minimalist</p>
-                <p className="text-slate-400 text-xs mt-1">Navy · Charcoal · Bone · Cognac</p>
-                <div className="flex gap-1 mt-2">
-                  {['#1a2a4a', '#374151', '#e8e0d4', '#9d4b2a'].map(c => (
-                    <div key={c} className="w-5 h-5 rounded-full border border-white/10" style={{ background: c }} />
-                  ))}
-                </div>
-              </div>
-              {/* Floating badge */}
-              <div className="absolute -bottom-4 -right-4 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                Your exact face ✓
-              </div>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">Not another tips app.</h2>
+          <p className="text-slate-400 max-w-xl mx-auto">PresenceAI is a 90-day coaching system that analyzes how you actually look, sound, and come across — then trains you to get better through daily action.</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: Target,
+              color: 'text-violet-400',
+              border: 'border-violet-800/40',
+              bg: 'bg-violet-950/20',
+              title: 'Real feedback, not generic tips',
+              desc: 'We analyze how you actually look and sound — expression, eye contact, filler words, pace — with real AI metrics. No guesses.',
+            },
+            {
+              icon: Flame,
+              color: 'text-amber-400',
+              border: 'border-amber-800/40',
+              bg: 'bg-amber-950/20',
+              title: 'A plan, not just a report',
+              desc: 'Daily missions, AI practice scenarios, and real-world challenges. Each one targeted at your weakest dimension, for your goal.',
+            },
+            {
+              icon: TrendingUp,
+              color: 'text-emerald-400',
+              border: 'border-emerald-800/40',
+              bg: 'bg-emerald-950/20',
+              title: 'Track your Dating Readiness',
+              desc: 'A single score across 7 dimensions — appearance, voice, confidence, conversation, body language. See yourself getting better week over week.',
+            },
+          ].map(({ icon: Icon, color, border, bg, title, desc }) => (
+            <div key={title} className={`rounded-2xl border ${border} ${bg} p-6`}>
+              <Icon size={22} className={`${color} mb-4`} />
+              <h3 className="text-white font-bold text-base mb-2">{title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
             </div>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Copy */}
+      {/* ── MISSION FEATURE ── */}
+      <section className="border-y border-slate-800/60 bg-slate-900/30 py-20 px-5">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row-reverse items-center gap-12">
+          <div className="flex-1 flex justify-center">
+            <MockMissionCard />
+          </div>
           <div className="flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-700/40 bg-violet-900/20 px-3 py-1 text-xs text-violet-400 font-semibold mb-4">
-              <Sparkles size={11} /> Style Check
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-700/40 bg-amber-900/20 px-3 py-1 text-xs text-amber-400 font-semibold mb-4">
+              <Zap size={11} /> Daily Missions
             </div>
             <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-5">
-              See yourself in your<br />
-              <span className="gradient-text">ideal look</span> — AI-styled<br />
-              for your exact face
+              One mission.<br />
+              <span className="text-amber-400">Every day.</span><br />
+              Always specific to you.
             </h2>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Upload one photo. Presence AI identifies your face shape, skin tone, and vibe —
-              then generates a full style archetype with colors, outfits, and an AI image of
-              <em className="text-white not-italic font-semibold"> you</em> in your ideal look.
-              Not a random model. You.
+              Not a tip to read — a real-world action to complete. Your mission each day is generated from your actual coaching data: targeting your weakest area, matched to your current week, calibrated to your streak.
             </p>
             <ul className="space-y-3 mb-8">
               {[
-                'Your personal style archetype (e.g. The Sharp Minimalist)',
-                'Exact colors that work for your skin tone',
-                'AI-generated image of you in your ideal outfit',
-                'Hair, grooming & expression coaching',
+                'Mon → Grooming or appearance challenge',
+                'Wed → Voice challenge (record yourself)',
+                'Fri → Dating or conversation challenge',
+                'Sun → Weekly reflection + next week unlocks',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
+                  <ChevronRight size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link href="/avatar-preview">
+              <Button className="bg-amber-600 hover:bg-amber-500 gap-2">
+                <Flame size={15} /> Start my 90-day plan
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── ROADMAP FEATURE ── */}
+      <section className="max-w-6xl mx-auto px-5 py-20">
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 flex justify-center">
+            <MockRoadmap />
+          </div>
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-700/40 bg-violet-900/20 px-3 py-1 text-xs text-violet-400 font-semibold mb-4">
+              <TrendingUp size={11} /> 90-Day Roadmap
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-5">
+              A structured plan<br />
+              <span className="gradient-text">built around your goal</span><br />
+              — not a feature list.
+            </h2>
+            <p className="text-slate-400 leading-relaxed mb-6">
+              Tell us your goal — dating, career, or overall confidence — and your 90-day roadmap is built around it. Week 1 is appearance basics. Week 5 is first date practice scenarios. Week 8 is your reassessment.
+            </p>
+            <ul className="space-y-3 mb-8">
+              {[
+                'Dating goal: 8-week plan from grooming to approaching',
+                'Career goal: appearance → voice → interview practice',
+                'Monthly reassessment: before/after score comparison',
+                'Roadmap adjusts based on your progress each week',
               ].map(item => (
                 <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
                   <ChevronRight size={15} className="text-violet-400 shrink-0 mt-0.5" />
@@ -237,125 +338,8 @@ export default function LandingPage() {
               ))}
             </ul>
             <Link href="/login">
-              <Button className="bg-violet-600 hover:bg-violet-500 gap-2">
-                <Camera size={16} /> Get my style profile free
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ACTION PLAN FEATURE ── */}
-      <section className="border-y border-slate-800/60 bg-slate-900/30 py-20 px-5">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row-reverse items-center gap-12">
-
-          {/* Visual */}
-          <div className="flex-1 flex justify-center">
-            <MockActionPlan />
-          </div>
-
-          {/* Copy */}
-          <div className="flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-700/40 bg-amber-900/20 px-3 py-1 text-xs text-amber-400 font-semibold mb-4">
-              <Zap size={11} /> Action Plan
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-5">
-              Not a generic report.<br />
-              <span className="text-amber-400">3 specific fixes</span><br />
-              ranked by impact.
-            </h2>
-            <p className="text-slate-400 leading-relaxed mb-6">
-              Most apps just give you a score. Presence AI tells you
-              <em className="text-white not-italic font-semibold"> exactly what to change</em> —
-              grooming, posture, expression, voice — ranked by what will actually move the needle on
-              your dates and social life.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Fixes pulled from your real face scan + voice check',
-                'Framed by your goal — dates, confidence, or full glow-up',
-                'Links directly to the drill or tutorial to fix it',
-                'Updates every time you re-scan',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
-                  <ChevronRight size={15} className="text-amber-400 shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/login">
-              <Button variant="outline" className="gap-2 border-amber-700/50 text-amber-300 hover:bg-amber-900/20">
-                <Zap size={15} /> See my action plan
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── VOICE CHECK FEATURE ── */}
-      <section className="max-w-6xl mx-auto px-5 py-20">
-        <div className="flex flex-col md:flex-row items-center gap-12">
-
-          {/* Visual */}
-          <div className="flex-1 flex justify-center">
-            <div className="rounded-2xl border border-sky-800/40 bg-gradient-to-br from-sky-950/50 to-slate-900 p-5 w-full max-w-sm shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-4xl font-black text-white">72</p>
-                  <p className="text-sky-400 text-xs font-bold uppercase tracking-wider">Confident</p>
-                </div>
-                <div className="text-right space-y-1">
-                  <span className="block px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">134 wpm · Perfect pace</span>
-                  <span className="block px-2.5 py-1 rounded-full bg-amber-900/40 border border-amber-800/50 text-xs text-amber-300">8 filler words</span>
-                  <span className="block px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">Clarity 81/100</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Fix these</p>
-                {[
-                  { bar: '#f59e0b', text: 'Cut the "um"s — pause instead of filling silence' },
-                  { bar: '#38bdf8', text: 'End sentences with confidence, not a question tone' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-3 px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-                    <div className="w-0.5 shrink-0 rounded-full bg-amber-500" style={{ minHeight: '1.2rem', background: item.bar }} />
-                    <p className="text-xs text-white">{item.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Copy */}
-          <div className="flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-700/40 bg-sky-900/20 px-3 py-1 text-xs text-sky-400 font-semibold mb-4">
-              <Mic size={11} /> Voice Check
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-5">
-              Find out why people<br />
-              <span className="text-sky-400">aren&apos;t fully listening</span><br />
-              to you.
-            </h2>
-            <p className="text-slate-400 leading-relaxed mb-6">
-              Record 30 seconds of yourself. Presence AI detects filler words,
-              grammar issues, pace problems, and tone — then gives you specific
-              drills to fix them before your next conversation.
-            </p>
-            <ul className="space-y-3 mb-8">
-              {[
-                '"Um", "like", "basically" — detected and counted',
-                'Grammar issues caught and corrected',
-                'Tone assessment: confident vs. uncertain vs. rushed',
-                'Drills to practice in under 5 minutes',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
-                  <ChevronRight size={15} className="text-sky-400 shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/login">
-              <Button variant="outline" className="gap-2 border-sky-700/50 text-sky-300 hover:bg-sky-900/20">
-                <Mic size={15} /> Check my voice
+              <Button variant="outline" className="gap-2 border-violet-700/50 text-violet-300 hover:bg-violet-900/20">
+                See my roadmap <ArrowRight size={15} />
               </Button>
             </Link>
           </div>
@@ -366,43 +350,69 @@ export default function LandingPage() {
       <section className="border-t border-slate-800/60 bg-slate-900/30 py-16 px-5">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-black text-white mb-2">How it works</h2>
-          <p className="text-slate-500 text-sm mb-10">Three steps. Sixty seconds. Real results.</p>
-          <div className="grid md:grid-cols-3 gap-6">
+          <p className="text-slate-500 text-sm mb-10">Avatar in 2 minutes. Coaching for 90 days.</p>
+          <div className="grid md:grid-cols-4 gap-4">
             {[
-              { step: '01', title: 'Upload a photo', desc: 'One selfie or portrait. Clear, good light. That\'s it.', color: 'text-violet-400', border: 'border-violet-800/40' },
-              { step: '02', title: 'Get your fixes', desc: 'Your action plan, style archetype, color palette, and AI-generated ideal look. Instant.', color: 'text-amber-400', border: 'border-amber-800/40' },
-              { step: '03', title: 'Level up', desc: 'Re-scan weekly. Watch your Presence Score climb as you apply the coaching.', color: 'text-emerald-400', border: 'border-emerald-800/40' },
+              { step: '01', title: 'Upload a photo', desc: 'One clear selfie. Get a free 15-second AI avatar — no account.', color: 'text-violet-400', border: 'border-violet-800/40' },
+              { step: '02', title: 'Complete assessment', desc: 'Face scan + voice check → unlock your Dating Readiness score.', color: 'text-amber-400', border: 'border-amber-800/40' },
+              { step: '03', title: 'Follow your plan', desc: 'Daily missions, AI practice, real-world challenges every week.', color: 'text-sky-400', border: 'border-sky-800/40' },
+              { step: '04', title: 'See the change', desc: 'Monthly reassessment shows your before/after. Share your progress.', color: 'text-emerald-400', border: 'border-emerald-800/40' },
             ].map(({ step, title, desc, color, border }) => (
-              <div key={step} className={`rounded-2xl border ${border} bg-slate-900/50 p-6 text-left`}>
-                <p className={`text-4xl font-black mb-3 ${color}`}>{step}</p>
-                <p className="text-white font-bold text-base mb-2">{title}</p>
-                <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+              <div key={step} className={`rounded-2xl border ${border} bg-slate-900/50 p-5 text-left`}>
+                <p className={`text-3xl font-black mb-3 ${color}`}>{step}</p>
+                <p className="text-white font-bold text-sm mb-1.5">{title}</p>
+                <p className="text-slate-400 text-xs leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* ── PRICING STRIP ── */}
+      <section className="py-16 px-5">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-slate-500 text-sm mb-6">Simple pricing. Cancel anytime.</p>
+          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
+            {[
+              { label: 'Weekly', price: '₹149', period: '/week', note: 'Try it out' },
+              { label: 'Monthly', price: '₹499', period: '/month', note: 'Most popular', highlight: true },
+              { label: 'Annual', price: '₹1,999', period: '/year', note: 'Save 67%' },
+            ].map(({ label, price, period, note, highlight }) => (
+              <div key={label} className={`rounded-2xl border p-4 text-center ${highlight ? 'border-violet-600 bg-violet-950/30' : 'border-slate-800 bg-slate-900/50'}`}>
+                {highlight && <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider mb-1">Best value</p>}
+                <p className="text-white font-bold text-sm">{label}</p>
+                <p className={`text-2xl font-black mt-1 ${highlight ? 'text-violet-300' : 'text-white'}`}>{price}</p>
+                <p className="text-xs text-slate-500">{period}</p>
+                <p className="text-[10px] text-slate-500 mt-1">{note}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-600 mt-4">3-day free trial · UPI AutoPay · Cancel before Day 4, pay nothing</p>
+        </div>
+      </section>
+
       {/* ── FINAL CTA ── */}
-      <section className="py-20 px-5 text-center">
+      <section className="py-20 px-5 text-center border-t border-slate-800/60">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
-            Your ideal look.<br />
-            <span className="gradient-text">Your 3 fixes. Free.</span>
+            See yourself at your<br />
+            <span className="gradient-text">most confident. Free.</span>
           </h2>
           <p className="text-slate-400 text-lg mb-8">
-            Takes 60 seconds. No credit card. No fluff — just output.
+            Upload a photo. Get a 15-second AI video of you — confident, clear, magnetic. Takes 2 minutes.
           </p>
-          <Link href="/login">
+          <Link href="/avatar-preview">
             <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-10 py-6">
-              Scan my look for free <ArrowRight size={18} />
+              <Play size={16} className="fill-white text-white" />
+              Generate My Free Avatar <ArrowRight size={18} />
             </Button>
           </Link>
+          <p className="text-xs text-slate-600 mt-4">No account · No credit card · Just your face</p>
         </div>
       </section>
 
       <footer className="border-t border-slate-800/60 py-6 text-center text-sm text-slate-600">
-        <p>© {new Date().getFullYear()} PresenceAI · Built for the ones who want to show up better</p>
+        <p>© {new Date().getFullYear()} PresenceAI · Built for men who want to show up better</p>
         <div className="flex gap-4 justify-center mt-2">
           <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
           <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
