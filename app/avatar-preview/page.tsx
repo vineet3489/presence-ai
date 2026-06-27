@@ -3,11 +3,11 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, ArrowRight } from 'lucide-react';
+import { Loader2, Download, ArrowRight, Sparkles } from 'lucide-react';
 import { PresenceLogo } from '@/components/ui/PresenceLogo';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 
-type Phase = 'idle' | 'uploading' | 'rendering' | 'done' | 'error';
+type Phase = 'idle' | 'uploading' | 'rendering' | 'done' | 'error' | 'limit';
 
 export default function AvatarPreviewPage() {
   const [phase, setPhase] = useState<Phase>('idle');
@@ -88,6 +88,11 @@ export default function AvatarPreviewPage() {
       const res = await fetch('/api/avatar/preview', { method: 'POST', body: formData });
       const data = await res.json();
 
+      if (res.status === 402 || data.limitReached) {
+        setPhase('limit');
+        return;
+      }
+
       if (!res.ok) {
         setError(data.error || 'Generation failed. Please try again.');
         setPhase('error');
@@ -142,8 +147,55 @@ export default function AvatarPreviewPage() {
           </p>
         </div>
 
-        {/* Done state — show video */}
-        {phase === 'done' && videoUrl ? (
+        {/* Limit reached — sign up CTA */}
+        {phase === 'limit' ? (
+          <div className="space-y-6 py-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-violet-900/40 border border-violet-700/40 flex items-center justify-center mx-auto">
+              <Sparkles size={26} className="text-violet-400" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-black text-white">Free previews used up</h2>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                The free avatar preview has hit its limit. Sign up for PresenceAI to generate
+                unlimited avatars with <strong className="text-white">your actual face and your cloned voice</strong> — plus a full 90-day coaching plan.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-violet-700/40 bg-violet-950/30 p-5 text-left space-y-3">
+              <p className="text-xs text-violet-400 font-bold uppercase tracking-wider">What you get with an account</p>
+              {[
+                'Unlimited avatar videos with your cloned voice',
+                'Face scan + voice analysis with personal coaching',
+                '90-day dating confidence plan — daily missions',
+                'Style profile, outfit builder, roleplay practice',
+                '3 days free — ₹499/month after, cancel anytime',
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-slate-300">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <Link href="/login" className="block">
+                <Button className="w-full bg-violet-600 hover:bg-violet-500 gap-2 h-12 text-base">
+                  Start Free Trial — 3 Days Free <ArrowRight size={16} />
+                </Button>
+              </Link>
+              <p className="text-xs text-slate-600">No charge for 3 days · ₹499/month after · Cancel anytime</p>
+            </div>
+
+            <button
+              onClick={reset}
+              className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
+            >
+              ← Try a different photo
+            </button>
+          </div>
+
+        /* Done state — show video */
+        ) : phase === 'done' && videoUrl ? (
           <div className="space-y-4">
             <div className="rounded-2xl overflow-hidden border border-violet-700/50">
               <video src={videoUrl} controls playsInline autoPlay className="w-full" />

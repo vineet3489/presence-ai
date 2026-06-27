@@ -76,17 +76,28 @@ export async function POST(req: Request) {
     const talkingPhotoId = uploadData.data?.talking_photo_id;
 
     if (!talkingPhotoId) {
-      // Return the actual HeyGen error so we know what's wrong
-      const heygenMsg = uploadData.message || uploadData.error || uploadText.slice(0, 200);
-      const userMsg = uploadRes.status === 401 || uploadRes.status === 403
-        ? 'API authentication failed. Contact support.'
-        : uploadRes.status === 429
-        ? 'Too many requests. Please try again in a minute.'
-        : heygenMsg?.toLowerCase().includes('face')
-        ? 'No face detected. Use a clear, front-facing photo with good lighting.'
-        : heygenMsg?.toLowerCase().includes('size') || heygenMsg?.toLowerCase().includes('large')
-        ? 'Photo is too large. Try a smaller file.'
-        : `Photo upload failed: ${heygenMsg || `HTTP ${uploadRes.status}`}`;
+      const heygenMsg = (uploadData.message || uploadData.error || uploadText).toLowerCase();
+
+      // HeyGen plan limit hit — this is expected for free previews
+      if (
+        heygenMsg.includes('exceeded') ||
+        heygenMsg.includes('limit') ||
+        heygenMsg.includes('upgrade') ||
+        heygenMsg.includes('quota')
+      ) {
+        return NextResponse.json({ limitReached: true }, { status: 402 });
+      }
+
+      const userMsg =
+        uploadRes.status === 401 || uploadRes.status === 403
+          ? 'API authentication failed. Contact support.'
+          : uploadRes.status === 429
+          ? 'Too many requests. Please try again in a minute.'
+          : heygenMsg.includes('face')
+          ? 'No face detected. Use a clear, front-facing photo with good lighting.'
+          : heygenMsg.includes('size') || heygenMsg.includes('large')
+          ? 'Photo is too large. Try a smaller file.'
+          : `Photo upload failed (${uploadRes.status}): ${uploadData.message || uploadData.error || 'Unknown error'}`;
 
       return NextResponse.json({ error: userMsg }, { status: 400 });
     }
