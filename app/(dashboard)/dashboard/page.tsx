@@ -36,7 +36,8 @@ export default async function DashboardPage() {
   const streak: number = profile?.tip_streak ?? 0;
   const primaryGoal: string = (profile as Record<string, unknown>)?.primary_goal as string ?? 'dating';
   const hasScans = !!(appearanceSession || voiceSession);
-  const isSubscribed = profile?.subscription_status === 'active' || profile?.subscription_status === 'trial';
+  // Paywall disabled for testing — treat all users as subscribed so blur doesn't block
+  const isSubscribed = true; // profile?.subscription_status === 'active' || profile?.subscription_status === 'trial';
 
   const goalLabel = primaryGoal === 'dating' ? 'Dating Readiness' : primaryGoal === 'career' ? 'Career Readiness' : 'Confidence';
 
