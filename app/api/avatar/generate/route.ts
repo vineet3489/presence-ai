@@ -10,7 +10,11 @@ async function buildScript(
   archetype: string,
   voiceFixes: string[],
   goal: string,
-  voiceStrengths: string[]
+  voiceStrengths: string[],
+  postureCue?: string,
+  expressionCue?: string,
+  heightCm?: number | null,
+  weightKg?: number | null,
 ): Promise<string> {
   const goalContext = goal?.includes('date')
     ? 'approaching someone they find attractive at a social setting'
@@ -19,10 +23,19 @@ async function buildScript(
     : 'making a confident, natural first impression in a social setting';
 
   const fixes = voiceFixes.length > 0
-    ? `Their voice coaching: avoid ${voiceFixes.slice(0, 2).join(' and ')}. Be direct, no hedging.`
+    ? `Voice coaching applied: zero ${voiceFixes.slice(0, 2).join(' and ')}. Confident, direct sentence endings only.`
     : '';
   const strengths = voiceStrengths.length > 0
-    ? `Their natural speaking strengths: ${voiceStrengths.slice(0, 1).join(', ')}. Lean into this.`
+    ? `Natural speaking strength: ${voiceStrengths.slice(0, 1).join(', ')}. Lean into this.`
+    : '';
+  const postureNote = postureCue
+    ? `Presence cue woven in naturally: ${postureCue}`
+    : '';
+  const expressionNote = expressionCue
+    ? `Expression/energy: ${expressionCue}`
+    : '';
+  const bodyNote = heightCm && weightKg
+    ? `Physical presence: ${heightCm}cm, ${weightKg}kg — script energy should match their frame.`
     : '';
 
   const msg = await anthropic.messages.create({
@@ -34,14 +47,20 @@ async function buildScript(
 Their style archetype: "${archetype}".
 ${fixes}
 ${strengths}
+${postureNote}
+${expressionNote}
+${bodyNote}
 
 Rules:
+- Confident vocabulary only — no hedging ("maybe", "kind of", "I think"), no questions about "maybe"
 - Zero filler words (no um, uh, like, basically, you know, so)
-- Confident sentence endings — no upward questioning tone
-- Specific observational opener, genuine curiosity, ends with ONE direct question
+- Confident, declarative sentence endings — never upward questioning tone
+- Include one subtle posture/presence cue naturally embedded in the words (e.g. how they stand, enter, hold themselves)
+- Specific observational opener, genuine curiosity, ends with ONE direct engaging question
 - Matches the archetype's energy authentically
 - Sounds like their best, most articulate version — not scripted or salesy
 - First person, present tense
+- Voice coaching applied: zero fillers, confident sentence endings throughout
 - Return ONLY the spoken words. No quotes, no stage directions, nothing else.`
     }]
   });
@@ -146,7 +165,7 @@ export async function POST(request: Request) {
     supabase.from('analysis_sessions').select('date_prep_result')
       .eq('user_id', user.id).eq('session_type', 'date_prep')
       .order('created_at', { ascending: false }).limit(10),
-    supabase.from('user_profiles').select('goals').eq('user_id', user.id).single(),
+    supabase.from('user_profiles').select('goals, height_cm, weight_kg').eq('user_id', user.id).single(),
   ]);
 
   // Require face scan photo
@@ -172,12 +191,19 @@ export async function POST(request: Request) {
   const voiceStrengths: string[] = (voiceResult?.strengthsList as string[]) || [];
   const audioPath = voiceResult?.audioStoragePath as string | null;
   const goal: string = (profile?.goals as string[])?.[0] || '';
+  const heightCm = (profile as Record<string, unknown> | null)?.height_cm as number | null ?? null;
+  const weightKg = (profile as Record<string, unknown> | null)?.weight_kg as number | null ?? null;
+
+  // Pull posture and expression cues from last appearance session
+  const appearanceResult = lastScan?.appearance_result as Record<string, unknown> | null;
+  const postureCue = (appearanceResult?.postureCorrections as string[] | null)?.[0] ?? undefined;
+  const expressionCue = (appearanceResult?.expressionTips as string[] | null)?.[0] ?? undefined;
 
   try {
     const admin = createAdminClient();
 
-    // 1. Build script — shaped by their archetype, voice coaching, and strengths
-    const script = await buildScript(archetype, voiceFixes, goal, voiceStrengths);
+    // 1. Build script — shaped by their archetype, voice coaching, posture, expression, and body context
+    const script = await buildScript(archetype, voiceFixes, goal, voiceStrengths, postureCue, expressionCue, heightCm, weightKg);
     console.log('[avatar/generate] script:', script);
 
     // 2. Get/upload talking photo (face personalization)

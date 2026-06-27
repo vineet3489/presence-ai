@@ -5,8 +5,9 @@ import { compositeScore } from '@/lib/scoring/presenceScore';
 import { MissionCard, MissionStreak } from '@/components/dashboard/MissionCard';
 import { DailyTips } from '@/components/dashboard/DailyTips';
 import { Button } from '@/components/ui/button';
-import { Camera, Mic, Heart, ArrowRight, MessageCircleHeart, Sparkles, Shirt, ChevronRight, TrendingUp } from 'lucide-react';
+import { Camera, Mic, Heart, MessageCircleHeart, Sparkles, Shirt, ChevronRight, TrendingUp } from 'lucide-react';
 import { AvatarCard } from '@/components/dashboard/AvatarCard';
+import { BestVersionCard } from '@/components/dashboard/BestVersionCard';
 import type { AnalysisSession } from '@/types';
 
 export default async function DashboardPage() {
@@ -35,6 +36,7 @@ export default async function DashboardPage() {
   const streak: number = profile?.tip_streak ?? 0;
   const primaryGoal: string = (profile as Record<string, unknown>)?.primary_goal as string ?? 'dating';
   const hasScans = !!(appearanceSession || voiceSession);
+  const isSubscribed = profile?.subscription_status === 'active' || profile?.subscription_status === 'trial';
 
   const goalLabel = primaryGoal === 'dating' ? 'Dating Readiness' : primaryGoal === 'career' ? 'Career Readiness' : 'Confidence';
 
@@ -107,6 +109,26 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* AI Avatar */}
+      <AvatarCard subscribed={isSubscribed} />
+
+      {/* Best Version breakdown */}
+      <BestVersionCard />
+
+      {/* Date Tonight hero card */}
+      <Link href="/date-prep">
+        <div className="rounded-2xl border border-pink-700/50 bg-gradient-to-br from-pink-950/40 to-slate-900/80 p-5 flex items-center gap-4 hover:border-pink-600/60 transition-colors group">
+          <div className="w-12 h-12 rounded-xl bg-pink-900/40 border border-pink-700/40 flex items-center justify-center shrink-0">
+            <Heart size={22} className="text-pink-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-bold">Have a date?</p>
+            <p className="text-slate-400 text-sm mt-0.5">Outfit · conversation starters · pre-date checklist — all in one</p>
+          </div>
+          <ChevronRight size={16} className="text-slate-600 group-hover:text-pink-400 transition-colors" />
+        </div>
+      </Link>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">

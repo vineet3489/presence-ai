@@ -12,6 +12,8 @@ interface Profile {
   subscription_ends_at: string | null;
   date_of_birth: string | null;
   place_of_birth: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
 }
 
 function formatDate(iso: string) {
@@ -31,6 +33,10 @@ export default function SettingsPage() {
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [heightCm, setHeightCm] = useState('');
+  const [weightKg, setWeightKg] = useState('');
+  const [savingBody, setSavingBody] = useState(false);
+  const [bodySaved, setBodySaved] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -39,12 +45,14 @@ export default function SettingsPage() {
     });
     supabase
       .from('user_profiles')
-      .select('subscription_status, trial_started_at, subscription_ends_at, date_of_birth, place_of_birth')
+      .select('subscription_status, trial_started_at, subscription_ends_at, date_of_birth, place_of_birth, height_cm, weight_kg')
       .single()
       .then(({ data }) => {
         setProfile(data);
         if (data?.date_of_birth) setDob(data.date_of_birth);
         if (data?.place_of_birth) setPlaceOfBirth(data.place_of_birth);
+        if (data?.height_cm) setHeightCm(String(data.height_cm));
+        if (data?.weight_kg) setWeightKg(String(data.weight_kg));
         setLoading(false);
       });
   }, []);
@@ -61,6 +69,20 @@ export default function SettingsPage() {
     setSavingProfile(false);
     setProfileSaved(true);
     setTimeout(() => setProfileSaved(false), 3000);
+  }
+
+  async function handleSaveBody() {
+    setSavingBody(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('user_profiles').update({
+      height_cm: heightCm ? parseInt(heightCm, 10) : null,
+      weight_kg: weightKg ? parseFloat(weightKg) : null,
+    }).eq('user_id', user.id);
+    setSavingBody(false);
+    setBodySaved(true);
+    setTimeout(() => setBodySaved(false), 3000);
   }
 
   async function handleCancel() {
@@ -140,6 +162,56 @@ export default function SettingsPage() {
           {savingProfile
             ? <Loader2 size={13} className="animate-spin" />
             : profileSaved
+            ? <><Check size={13} /> Saved</>
+            : 'Save'}
+        </Button>
+      </div>
+
+      {/* Body */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
+        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Body</p>
+        <p className="text-xs text-slate-500 -mt-1">Used for personalised style and outfit recommendations.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 mb-1.5 block">Height (cm)</label>
+            <input
+              type="number"
+              value={heightCm}
+              onChange={e => setHeightCm(e.target.value)}
+              placeholder="e.g. 175"
+              min={100}
+              max={250}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1.5 block">Weight (kg)</label>
+            <input
+              type="number"
+              value={weightKg}
+              onChange={e => setWeightKg(e.target.value)}
+              placeholder="e.g. 70"
+              min={30}
+              max={300}
+              step={0.1}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
+            />
+          </div>
+        </div>
+        {heightCm && weightKg && (
+          <p className="text-xs text-slate-400">
+            BMI: <span className="text-white font-semibold">{(parseFloat(weightKg) / ((parseInt(heightCm, 10) / 100) ** 2)).toFixed(1)}</span>
+          </p>
+        )}
+        <Button
+          size="sm"
+          onClick={handleSaveBody}
+          disabled={savingBody}
+          className="gap-1.5"
+        >
+          {savingBody
+            ? <Loader2 size={13} className="animate-spin" />
+            : bodySaved
             ? <><Check size={13} /> Saved</>
             : 'Save'}
         </Button>

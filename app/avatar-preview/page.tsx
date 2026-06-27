@@ -194,30 +194,36 @@ export default function AvatarPreviewPage() {
             </button>
           </div>
 
-        /* Done state — show video */
+        /* Done state — show blurred video with sign up CTA */
         ) : phase === 'done' && videoUrl ? (
           <div className="space-y-4">
-            <div className="rounded-2xl overflow-hidden border border-violet-700/50">
-              <video src={videoUrl} controls playsInline autoPlay className="w-full" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button onClick={downloadVideo} variant="outline" className="gap-2">
-                <Download size={14} /> Download
-              </Button>
-              <Link href="/login" className="block">
-                <Button className="w-full bg-violet-600 hover:bg-violet-500 gap-2">
-                  Full Access <ArrowRight size={14} />
-                </Button>
-              </Link>
-            </div>
-            <div className="rounded-2xl border border-violet-800/30 bg-violet-950/20 p-4 text-center space-y-2">
-              <p className="text-sm font-bold text-white">Want your own voice on this?</p>
-              <p className="text-xs text-slate-400">
-                Sign up and we&apos;ll clone your voice from a 30-second recording — regenerated with you actually speaking.
-              </p>
-              <Link href="/login">
-                <Button size="sm" className="bg-violet-600 hover:bg-violet-500 mt-1">Start free trial →</Button>
-              </Link>
+            <div className="relative rounded-2xl overflow-hidden border border-violet-700/50">
+              <video
+                src={videoUrl}
+                playsInline
+                autoPlay
+                muted
+                loop
+                className="w-full"
+                style={{ filter: 'blur(10px)', pointerEvents: 'none' }}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-slate-950/40">
+                <p className="text-white font-black text-xl">Your avatar is ready 🔒</p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Sign up to see yourself clearly. 3 days free.
+                </p>
+                <Link href="/login" className="block w-full max-w-xs">
+                  <Button className="w-full bg-violet-600 hover:bg-violet-500 gap-2 h-12 text-base">
+                    Sign up free — see your avatar <ArrowRight size={16} />
+                  </Button>
+                </Link>
+                <button
+                  onClick={downloadVideo}
+                  className="text-xs text-slate-500 hover:text-slate-400 transition-colors underline underline-offset-2"
+                >
+                  Download blurred preview
+                </button>
+              </div>
             </div>
             <Button variant="ghost" onClick={reset} className="w-full text-slate-500 text-sm">
               Try with a different photo

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play, RefreshCw, Volume2, Trophy, Sparkles } from 'lucide-react';
+import { Loader2, Play, RefreshCw, Volume2, Trophy, Sparkles, Lock } from 'lucide-react';
 
 type Phase =
   | 'loading'      // checking storage
@@ -12,7 +13,7 @@ type Phase =
   | 'done'
   | 'error';
 
-export function AvatarCard() {
+export function AvatarCard({ subscribed = true }: { subscribed?: boolean }) {
   const [phase, setPhase] = useState<Phase>('loading');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [script, setScript] = useState<string | null>(null);
@@ -145,13 +146,27 @@ export function AvatarCard() {
         </div>
 
         <div className="relative bg-black mx-4 mb-4 rounded-xl overflow-hidden">
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            controls
-            playsInline
-            className="w-full max-h-[480px] object-contain"
-          />
+          <div style={!subscribed ? { filter: 'blur(12px) brightness(0.7)', pointerEvents: 'none' } : undefined}>
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              controls={subscribed}
+              playsInline
+              className="w-full max-h-[480px] object-contain"
+            />
+          </div>
+          {!subscribed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-slate-900/80 border border-violet-700/50 flex items-center justify-center">
+                <Lock size={20} className="text-violet-400" />
+              </div>
+              <p className="text-white font-bold text-base">Start free trial to unlock your avatar</p>
+              <p className="text-slate-400 text-sm">3 days free · ₹499/month after</p>
+              <Link href="/trial">
+                <Button className="bg-violet-600 hover:bg-violet-500 mt-1">Start Free Trial</Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         {script && (
