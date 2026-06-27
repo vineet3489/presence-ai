@@ -218,7 +218,7 @@ export async function POST(request: Request) {
       const uploadText = await uploadRes.text();
       console.log('[avatar/generate] talking_photo upload:', uploadRes.status, uploadText.slice(0, 300));
 
-      let uploadData: { code?: number; data?: { talking_photo_id?: string }; message?: string } = {};
+      let uploadData: { code?: number; data?: { talking_photo_id?: string }; message?: string; error?: string } = {};
       try { uploadData = JSON.parse(uploadText); } catch {
         throw new Error(`Photo upload failed (${uploadRes.status}): ${uploadText.slice(0, 150)}`);
       }
@@ -231,9 +231,13 @@ export async function POST(request: Request) {
           { contentType: 'text/plain', upsert: true }
         );
       } else {
+        const heygenMsg = uploadData.message || uploadData.error || uploadText.slice(0, 200);
+        const detail = uploadRes.status === 401 ? 'API authentication failed'
+          : uploadRes.status === 429 ? 'Rate limit hit — try again in a minute'
+          : heygenMsg || `HTTP ${uploadRes.status}`;
         throw new Error(
-          `Could not process your face scan photo (${uploadData.message || 'upload rejected'}). ` +
-          'Please redo your Face Scan with a clear, front-facing, well-lit photo.'
+          `Photo upload failed: ${detail}. ` +
+          'Try redoing your Face Scan with a clear, front-facing, well-lit photo (JPEG/PNG).'
         );
       }
     }

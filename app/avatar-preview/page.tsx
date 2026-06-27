@@ -23,6 +23,20 @@ export default function AvatarPreviewPage() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Client-side validation
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      setError('Please use a JPEG or PNG photo. HEIC, WEBP and other formats are not supported.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError(`Photo is ${Math.round(file.size / 1024 / 1024)}MB — please use one under 8MB.`);
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    setError('');
     const reader = new FileReader();
     reader.onload = ev => setPreviewImg(ev.target?.result as string);
     reader.readAsDataURL(file);
