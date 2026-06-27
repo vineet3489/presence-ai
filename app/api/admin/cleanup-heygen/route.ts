@@ -2,67 +2,54 @@ import { NextResponse } from 'next/server';
 
 const HEYGEN = process.env.HEYGEN_API_KEY!;
 
-async function heygenGet(path: string) {
-  const res = await fetch(`https://api.heygen.com${path}`, {
-    headers: { 'X-Api-Key': HEYGEN },
-  });
-  const text = await res.text();
-  try { return { status: res.status, data: JSON.parse(text) }; }
-  catch { return { status: res.status, data: text }; }
+interface HeyGenPhoto {
+  id: string;
+  image_url?: string;
+  is_preset?: boolean;
+  video_url?: string;
 }
 
-async function deleteTalkingPhoto(id: string): Promise<{ ok: boolean; status: number; body: unknown }> {
+async function listUserTalkingPhotos(): Promise<HeyGenPhoto[]> {
+  const res = await fetch('https://api.heygen.com/v1/talking_photo.list', {
+    headers: { 'X-Api-Key': HEYGEN },
+  });
+  const data = await res.json();
+  const all: HeyGenPhoto[] = data?.data ?? [];
+  // Only return user-uploaded photos — skip HeyGen presets
+  return all.filter(p => !p.is_preset);
+}
+
+async function deleteTalkingPhoto(id: string): Promise<boolean> {
   const res = await fetch(`https://api.heygen.com/v1/talking_photo/${id}`, {
     method: 'DELETE',
     headers: { 'X-Api-Key': HEYGEN },
   });
-  const text = await res.text();
-  let body: unknown = text;
-  try { body = JSON.parse(text); } catch { /* raw */ }
-  return { ok: res.ok, status: res.status, body };
+  console.log('[cleanup-heygen] DELETE', id, '→', res.status);
+  return res.ok;
 }
 
 export async function POST() {
   if (!HEYGEN) return NextResponse.json({ error: 'Not configured' }, { status: 500 });
 
-  // Try multiple possible list endpoints
-  const [v1List, v2List] = await Promise.all([
-    heygenGet('/v1/talking_photo.list'),
-    heygenGet('/v2/talking_photo'),
-  ]);
+  const photos = await listUserTalkingPhotos();
+  console.log('[cleanup-heygen] found', photos.length, 'user-uploaded talking photos to delete');
 
-  console.log('[cleanup] v1 talking_photo.list:', v1List.status, JSON.stringify(v1List.data).slice(0, 300));
-  console.log('[cleanup] v2 talking_photo:', v2List.status, JSON.stringify(v2List.data).slice(0, 300));
-
-  // Collect IDs from any endpoint that returned data
-  const ids: string[] = [];
-  const v1data = v1List.data as Record<string, unknown>;
-  const v2data = v2List.data as Record<string, unknown>;
-
-  const fromV1 = (v1data?.data as Record<string, unknown>)?.list as { talking_photo_id: string }[] | undefined;
-  const fromV2 = (v2data?.data as Record<string, unknown>)?.list as { talking_photo_id: string }[] | undefined
-    ?? (v2data?.data as { talking_photo_id: string }[] | undefined);
-
-  for (const p of fromV1 ?? []) if (p.talking_photo_id) ids.push(p.talking_photo_id);
-  for (const p of fromV2 ?? []) if (p.talking_photo_id && !ids.includes(p.talking_photo_id)) ids.push(p.talking_photo_id);
-
-  console.log('[cleanup] IDs to delete:', ids);
-
-  const results = await Promise.all(ids.map(id => deleteTalkingPhoto(id).then(r => ({ id, ...r }))));
+  const results = await Promise.all(
+    photos.map(async (p) => {
+      const ok = await deleteTalkingPhoto(p.id);
+      return { id: p.id, deleted: ok };
+    })
+  );
 
   return NextResponse.json({
-    deleted: results.filter(r => r.ok).length,
-    total_found: ids.length,
+    deleted: results.filter(r => r.deleted).length,
+    total_found: photos.length,
     results,
-    raw: { v1: v1List, v2: v2List },
   });
 }
 
 export async function GET() {
   if (!HEYGEN) return NextResponse.json({ error: 'Not configured' }, { status: 500 });
-  const [v1, v2] = await Promise.all([
-    heygenGet('/v1/talking_photo.list'),
-    heygenGet('/v2/talking_photo'),
-  ]);
-  return NextResponse.json({ v1, v2 });
+  const photos = await listUserTalkingPhotos();
+  return NextResponse.json({ count: photos.length, photos: photos.map(p => ({ id: p.id })) });
 }
