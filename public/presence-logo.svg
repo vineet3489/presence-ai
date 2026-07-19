@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="pg" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4b5fd"/>
+      <stop offset="0.55" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer aura ring, dashed -->
+  <circle cx="20" cy="20" r="18" stroke="url(#pg)" stroke-width="1.4" stroke-dasharray="3.2 2.4" opacity="0.5"/>
+  <!-- Middle aura ring -->
+  <circle cx="20" cy="20" r="12.5" stroke="url(#pg)" stroke-width="0.9" opacity="0.22"/>
+  <!-- Head -->
+  <circle cx="20" cy="14.5" r="5" fill="url(#pg)"/>
+  <!-- Shoulders -->
+  <path d="M11 30c0-4.97 4.03-9 9-9s9 4.03 9 9" stroke="url(#pg)" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

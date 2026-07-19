@@ -1,0 +1,355 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
+import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
+import { Button } from '@/components/ui/button';
+import { BiometricConsentModal } from '@/components/ui/BiometricConsentModal';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import type { VoiceResult } from '@/types';
+
+type Objective = 'date' | 'interview' | 'general';
+const OBJECTIVES: { value: Objective; label: string; sub: string; icon: React.ElementType }[] = [
+  { value: 'date', label: 'A date', sub: 'Warmth & flow', icon: Heart },
+  { value: 'interview', label: 'Interview', sub: 'Authority & clarity', icon: Briefcase },
+  { value: 'general', label: 'General vibe', sub: 'Full voice check', icon: Sparkles },
+];
+
+const VOICE_STAGES = [
+  { pct: 22, label: 'Reading your transcript…', delay: 400 },
+  { pct: 45, label: 'Counting filler words…', delay: 1400 },
+  { pct: 65, label: 'Checking grammar & tone…', delay: 2600 },
+  { pct: 83, label: 'Building your coaching…', delay: 3800 },
+];
+
+type State = 'loading' | 'idle' | 'analyzing' | 'done' | 'error';
+
+const PROMPT = "Tell me about yourself — your work, what you're passionate about, and what you're looking forward to right now.";
+
+interface SessionSnap {
+  id: string;
+  voice_score: number | null;
+  voice_result: VoiceResult | null;
+  created_at: string;
+}
+
+function AudioPlayer({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    fetch(`/api/face-scan/signed-url?path=${encodeURIComponent(path)}`)
+      .then(r => r.json()).then(({ url }) => { if (url) setUrl(url); }).catch(() => {});
+  }, [path]);
+  if (!url) return <p className="text-xs text-slate-600">Loading audio…</p>;
+  return <audio src={url} controls className="w-full h-8 mt-1" />;
+}
+
+export default function VoiceCheckPage() {
+  const router = useRouter();
+  const [state, setState] = useState<State>('loading');
+  const [showConsent, setShowConsent] = useState(false);
+  const [objective, setObjective] = useState<Objective | null>(null);
+  const [result, setResult] = useState<VoiceResult | null>(null);
+  const [score, setScore] = useState(0);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [history, setHistory] = useState<SessionSnap[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [analysisPct, setAnalysisPct] = useState(0);
+  const [analysisLabel, setAnalysisLabel] = useState('Starting…');
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingAudioRef = useRef<{ blob: Blob; mimeType: string } | null>(null);
+  const [nextStepUrl, setNextStepUrl] = useState<string | null>(null);
+  const [nextStepLabel, setNextStepLabel] = useState('');
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (state !== 'analyzing') {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      setAnalysisPct(0);
+      return;
+    }
+    timersRef.current = VOICE_STAGES.map(({ pct, label, delay }) =>
+      setTimeout(() => { setAnalysisPct(pct); setAnalysisLabel(label); }, delay)
+    );
+    return () => { timersRef.current.forEach(clearTimeout); };
+  }, [state]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from('user_profiles').select('biometric_consent_at').single().then(({ data }) => {
+      if (!(data as Record<string, unknown> | null)?.biometric_consent_at) setShowConsent(true);
+    });
+    supabase
+      .from('analysis_sessions')
+      .select('id, voice_result, voice_score, created_at')
+      .eq('session_type', 'voice')
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const [latest, ...rest] = data as SessionSnap[];
+          if (latest?.voice_result) {
+            setResult(latest.voice_result);
+            setScore(latest.voice_score ?? 0);
+            setState('done');
+          } else {
+            setState('idle');
+          }
+          setHistory(rest.filter(s => s.voice_result).slice(0, 5));
+        } else {
+          setState('idle');
+        }
+      });
+  }, []);
+
+  // After voice check completes: determine next step
+  useEffect(() => {
+    if (state !== 'done') return;
+    const supabase = createClient();
+    supabase.from('analysis_sessions').select('id').eq('session_type', 'appearance').limit(1).single()
+      .then(({ data }) => {
+        if (!data) {
+          setNextStepUrl('/face-scan');
+          setNextStepLabel('Face Scan');
+        } else {
+          setNextStepUrl('/style-profile');
+          setNextStepLabel('Style Profile');
+        }
+      });
+  }, [state]);
+
+  // Auto-redirect countdown
+  useEffect(() => {
+    if (!nextStepUrl || state !== 'done') return;
+    setCountdown(8);
+    const interval = setInterval(() => {
+      setCountdown(c => {
+        if (c === null) return null;
+        if (c <= 1) { clearInterval(interval); router.push(nextStepUrl); return null; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextStepUrl]);
+
+  function handleAudioBlob(blob: Blob, mimeType: string) {
+    pendingAudioRef.current = { blob, mimeType };
+  }
+
+  async function handleTranscript(text: string, dur: number) {
+    if (!text) return;
+    setState('analyzing');
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/analyze-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: text, durationSeconds: dur, objective }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+      setResult(data.result);
+      setScore(data.score);
+      setState('done');
+
+      // Upload audio blob if captured
+      if (data.sessionId && pendingAudioRef.current) {
+        const { blob, mimeType } = pendingAudioRef.current;
+        pendingAudioRef.current = null;
+        const fd = new FormData();
+        fd.append('audio', blob, `voice.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`);
+        fd.append('sessionId', data.sessionId);
+        fetch('/api/voice/save-audio', { method: 'POST', body: fd }).catch(console.error);
+      }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong');
+      setState('error');
+    }
+  }
+
+  function reset() {
+    setState('idle');
+    setObjective(null);
+    setResult(null);
+    setScore(0);
+    setErrorMsg('');
+  }
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  if (state === 'loading') {
+    return (
+      <div className="p-6 max-w-2xl mx-auto flex items-center justify-center py-24">
+        <Loader2 size={28} className="animate-spin text-sky-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      {showConsent && <BiometricConsentModal onConsent={() => setShowConsent(false)} />}
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-white">Voice Check</h1>
+        <p className="text-slate-400 mt-1 text-sm md:text-base">
+          Record yourself speaking — get coaching on clarity, tone, and grammar
+        </p>
+      </div>
+
+      {state === 'done' && result ? (
+        <div className="space-y-6">
+          <TranscriptViewer result={result} score={score} />
+
+          {/* Next step CTA */}
+          {nextStepUrl && (
+            <div className="rounded-2xl border border-sky-600/60 bg-gradient-to-r from-sky-900/40 to-slate-900 p-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-sky-400 font-bold uppercase tracking-wider">Next Step</p>
+                <p className="text-white font-semibold text-sm mt-0.5">{nextStepLabel} →</p>
+                {countdown !== null && (
+                  <p className="text-xs text-slate-500 mt-0.5">Auto-continuing in {countdown}s</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link href={nextStepUrl}>
+                  <Button size="sm" className="bg-sky-600 hover:bg-sky-500 gap-1.5">
+                    Go Now <ArrowRight size={13} />
+                  </Button>
+                </Link>
+                <button
+                  onClick={() => { setNextStepUrl(null); setCountdown(null); }}
+                  className="text-slate-600 hover:text-slate-400 text-lg leading-none px-1"
+                >×</button>
+              </div>
+            </div>
+          )}
+
+          <Button variant="outline" onClick={reset} className="w-full gap-2">
+            <RotateCcw size={16} /> Record Again
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Objective selector */}
+          {(state === 'idle' || state === 'error') && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-3">What&apos;s this check for?</p>
+              <div className="grid grid-cols-3 gap-2">
+                {OBJECTIVES.map(({ value, label, sub, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setObjective(value)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all ${
+                      objective === value
+                        ? 'border-sky-500 bg-sky-900/30 text-white'
+                        : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-500 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={16} className={objective === value ? 'text-sky-400' : 'text-slate-500'} />
+                    <span className="text-xs font-semibold">{label}</span>
+                    <span className="text-[10px] text-slate-500 leading-none">{sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <VoiceRecorder onTranscript={handleTranscript} onAudioBlob={handleAudioBlob} prompt={PROMPT} />
+
+          {state === 'analyzing' && (
+            <div className="flex flex-col items-center gap-4 py-10">
+              <div className="relative w-24 h-24">
+                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke="#0c2030" strokeWidth="6" />
+                  <circle
+                    cx="48" cy="48" r="40" fill="none" stroke="#0ea5e9" strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - analysisPct / 100)}`}
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-black text-white">{analysisPct}%</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-white">Presence AI is listening</p>
+                <p className="text-xs text-slate-500 mt-1">{analysisLabel}</p>
+              </div>
+            </div>
+          )}
+
+          {state === 'error' && (
+            <div className="space-y-3">
+              <p className="text-sm text-red-400 bg-red-900/20 rounded-lg px-4 py-3">{errorMsg}</p>
+              <Button variant="outline" onClick={reset} className="w-full gap-2">
+                <RotateCcw size={16} /> Try Again
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Past sessions */}
+      {history.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors mb-4"
+          >
+            <Clock size={15} />
+            Past recordings ({history.length})
+            {showHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {showHistory && (
+            <div className="space-y-3">
+              {history.map((s) => (
+                <div key={s.id} className="rounded-xl border border-slate-800 bg-slate-900/50">
+                  <button
+                    onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-sky-900/40 border border-sky-700/40 flex items-center justify-center">
+                        <span className="text-xs font-bold text-sky-300">{s.voice_score ?? '—'}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-white font-medium">Voice session</p>
+                        <p className="text-xs text-slate-500">{formatDate(s.created_at)}</p>
+                      </div>
+                    </div>
+                    {expandedId === s.id ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
+                  </button>
+
+                  {expandedId === s.id && s.voice_result && (
+                    <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-3">
+                      {s.voice_result.audioStoragePath && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Your recording</p>
+                          <AudioPlayer path={s.voice_result.audioStoragePath} />
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-400 leading-relaxed">{s.voice_result.overallCoaching}</p>
+                      <div className="flex gap-4 text-xs">
+                        <span className="text-slate-500">Pace: <span className="text-white">{s.voice_result.paceWpm} wpm</span></span>
+                        <span className="text-slate-500">Fillers: <span className="text-white">{s.voice_result.fillerWordCount}</span></span>
+                        <span className="text-slate-500">Clarity: <span className="text-white">{s.voice_result.clarityScore}/100</span></span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

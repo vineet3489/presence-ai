@@ -1,0 +1,3 @@
+ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS height_cm INTEGER,
+  ADD COLUMN IF NOT EXISTS weight_kg DECIMAL(5,1);
