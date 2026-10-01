@@ -231,15 +231,16 @@ export async function POST() {
 
   const colors = styleData.colorPalette?.primary?.slice(0, 3).join(', ') || 'navy, white';
 
-  // Short edit instruction — keeps Nano Banana in edit mode, not generation mode
+  // Short edit instruction — keeps the model in edit mode, not generation mode
   const prompt = [
-    'Edit this photo. Keep the face exactly as-is.',
+    'Edit this photo of one person. Keep the face exactly as-is — same identity, no duplicates.',
     `Hair: ${hairstyle}`,
     `Grooming: ${grooming}`,
     `Outfit: ${outfit}, colours ${colors}${physique ? `, fitted for ${physique} build` : ''}.`,
     `Pose: ${posture}. Expression: ${expression}.`,
-    'Background: dark navy seamless studio backdrop, professional lighting.',
-    'Frame: 3/4 body, face prominent at top.',
+    'Background: plain dark navy seamless studio backdrop, professional softbox lighting.',
+    'Output must contain exactly one person and one clean exposure — no ghosting, no multiple poses, no extra people anywhere in frame.',
+    'Framing: waist-up portrait, facing camera, centered, filling the frame.',
   ].join('\n');
 
   try {

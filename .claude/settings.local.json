@@ -48,7 +48,14 @@
       "mcp__plugin_vercel_vercel__list_project_domains",
       "Bash(dig +short zvtfeqavburkkzjxdvxt.supabase.co)",
       "Bash(dig zvtfeqavburkkzjxdvxt.supabase.co @8.8.8.8 +short)",
-      "Bash(nslookup zvtfeqavburkkzjxdvxt.supabase.co)"
+      "Bash(nslookup zvtfeqavburkkzjxdvxt.supabase.co)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git branch *)",
+      "Bash(git ls-tree *)",
+      "Bash(grep -E \"^lib/\\(subscription|featureFlags|shareCard|personas\\)\\\\.ts$|^app/perception/page\\\\.tsx$|^app/api/payment/webhook/route\\\\.ts$\")",
+      "mcp__plugin_vercel_vercel__list_deployments",
+      "mcp__plugin_vercel_vercel__get_deployment"
     ]
   }
 }

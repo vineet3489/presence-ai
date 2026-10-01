@@ -227,13 +227,13 @@ export default function StyleProfilePage() {
           )}
         </div>
         <p className="text-xs text-slate-500 mb-3">
-          Your actual face scan photo, styled with Nano Banana AI — same face, ideal outfit, hair, and confidence.
+          Your actual face scan photo, styled by AI — same face, ideal outfit, hair, and confidence.
         </p>
 
         {idealLookUrl ? (
           <div className="relative rounded-xl overflow-hidden border border-violet-700/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={idealLookUrl} alt="Your ideal look" className="w-full object-contain bg-slate-950" style={{ maxHeight: 720 }} />
+            <img src={idealLookUrl} alt="Your ideal look" className="w-full object-contain bg-slate-950" style={{ maxHeight: 960 }} />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950/90 to-transparent px-4 py-3">
               <div className="flex items-end justify-between">
                 <div>
@@ -268,7 +268,7 @@ export default function StyleProfilePage() {
                 <Loader2 size={22} className="animate-spin text-violet-400" />
                 <div className="text-center">
                   <p className="text-sm font-semibold text-white">Analyzing your look…</p>
-                  <p className="text-xs text-slate-500 mt-1">Gemini is reading your face scan + coaching feedback (~30s)</p>
+                  <p className="text-xs text-slate-500 mt-1">Reading your face scan + coaching feedback (~30s)</p>
                 </div>
               </div>
             ) : (
