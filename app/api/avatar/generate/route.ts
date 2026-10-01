@@ -117,16 +117,28 @@ async function listHeygenPhotoAvatars(): Promise<{ id: string }[]> {
   }
 }
 
-// Delete a HeyGen talking photo to free up quota
+// Delete a HeyGen talking photo to free up quota.
+// The plan's "photo avatar" limit is actually counted against the avatar_group
+// object (same id as the talking_photo), not the talking_photo object itself —
+// deleting only the talking_photo leaves the group behind and the quota stays used.
 async function deleteHeygenPhotoAvatar(id: string): Promise<void> {
   try {
-    const res = await fetch(`https://api.heygen.com/v1/talking_photo/${id}`, {
+    const res = await fetch(`https://api.heygen.com/v2/talking_photo/${id}`, {
       method: 'DELETE',
       headers: { 'X-Api-Key': HEYGEN },
     });
     console.log('[avatar/generate] deleted talking_photo', id, res.status);
   } catch (e) {
     console.error('[avatar/generate] delete photo avatar failed:', id, e);
+  }
+  try {
+    const res = await fetch(`https://api.heygen.com/v2/avatar_group/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-Api-Key': HEYGEN },
+    });
+    console.log('[avatar/generate] deleted avatar_group', id, res.status);
+  } catch (e) {
+    console.error('[avatar/generate] delete avatar_group failed:', id, e);
   }
 }
 

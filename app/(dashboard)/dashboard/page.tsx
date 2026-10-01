@@ -6,11 +6,12 @@ import { MissionCard, MissionStreak } from '@/components/dashboard/MissionCard';
 import { DailyTips } from '@/components/dashboard/DailyTips';
 import { Button } from '@/components/ui/button';
 import {
-  Camera, Mic, Heart, MessageCircleHeart, Sparkles, Shirt,
+  Camera, Mic, Heart, Eye, Sparkles,
   ChevronRight, TrendingUp, Lock, CheckCircle2, Flame,
 } from 'lucide-react';
 import { AvatarCard } from '@/components/dashboard/AvatarCard';
 import { BestVersionCard } from '@/components/dashboard/BestVersionCard';
+import { SHOW_AVATAR_SECTION } from '@/lib/featureFlags';
 import type { AnalysisSession } from '@/types';
 
 export default async function DashboardPage() {
@@ -140,7 +141,7 @@ export default async function DashboardPage() {
               {([
                 { step: 1, label: 'Face Scan', desc: 'Appearance score · style archetype · grooming guide', href: '/face-scan', done: step1Done },
                 { step: 2, label: 'Voice Check', desc: 'Voice confidence score · tone coaching', href: '/voice-check', done: step2Done },
-                { step: 3, label: 'Style Profile + AI Avatar', desc: 'Ideal look image · talking AI video of you', href: '/style-profile', done: step3Done },
+                { step: 3, label: 'Style Profile', desc: 'Your archetype, colors, and ideal look image', href: '/style-profile', done: step3Done },
               ] as const).map(({ step, label, desc, href, done }) => {
                 const isActive = activeStep === step;
                 return (
@@ -180,9 +181,9 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               {([
                 { label: 'Style Archetype', preview: '"Dark Academic"', icon: Sparkles, color: 'text-violet-400' },
-                { label: 'AI Avatar Video', preview: 'You, scripted + styled', icon: Camera, color: 'text-pink-400' },
+                { label: 'Perception Score', preview: 'Swipe 62% · Reply 74%', icon: Eye, color: 'text-pink-400' },
                 { label: 'Voice Score', preview: '78 / 100', icon: Mic, color: 'text-sky-400' },
-                { label: 'Outfit Picks', preview: '3 looks built for you', icon: Shirt, color: 'text-amber-400' },
+                { label: 'Bio Rewrites', preview: '3 tones, ready to use', icon: TrendingUp, color: 'text-amber-400' },
               ] as const).map(({ label, preview, icon: Icon, color }) => (
                 <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 relative overflow-hidden">
                   <div className="blur-sm select-none pointer-events-none">
@@ -222,7 +223,7 @@ export default async function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">Step {activeStep} of 3</p>
                   <p className="text-sm font-semibold text-white truncate">
-                    {activeStep === 1 ? 'Do your Face Scan to unlock your score' : activeStep === 2 ? 'Voice Check — unlock your voice coaching' : 'Generate your Style Profile + AI Avatar'}
+                    {activeStep === 1 ? 'Do your Face Scan to unlock your score' : activeStep === 2 ? 'Voice Check — unlock your voice coaching' : 'Generate your Style Profile'}
                   </p>
                 </div>
                 <ChevronRight size={16} className="text-slate-600 group-hover:text-violet-400 shrink-0 transition-colors" />
@@ -284,8 +285,8 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* AI Avatar */}
-          <AvatarCard subscribed={isSubscribed} />
+          {/* AI Avatar — hidden for the Percepta MVP pivot, flip SHOW_AVATAR_SECTION to re-enable */}
+          {SHOW_AVATAR_SECTION && <AvatarCard subscribed={isSubscribed} />}
 
           {/* Best Version breakdown */}
           <BestVersionCard />
@@ -310,7 +311,7 @@ export default async function DashboardPage() {
               { href: '/face-scan', icon: Camera, label: 'Face Scan', color: 'text-violet-400', desc: hasFaceScan ? 'Re-scan' : 'Start here' },
               { href: '/voice-check', icon: Mic, label: 'Voice Check', color: 'text-sky-400', desc: 'Tone & clarity' },
               { href: '/date-prep', icon: Heart, label: 'Date Prep', color: 'text-pink-400', desc: 'Plan your date' },
-              { href: '/chat-coach', icon: MessageCircleHeart, label: 'Chat Coach', color: 'text-rose-400', desc: 'Analyze your DMs' },
+              { href: '/perception', icon: Eye, label: 'Perception Check', color: 'text-rose-400', desc: 'How they see you' },
             ].map(({ href, icon: Icon, label, color, desc }) => (
               <Link key={href} href={href}>
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-600 transition-colors group h-full">
@@ -327,22 +328,10 @@ export default async function DashboardPage() {
             <div className="rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-950/40 to-slate-900/80 p-5 flex items-center gap-4 hover:border-violet-600/60 transition-colors group">
               <Sparkles size={20} className="text-violet-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm">Style Profile + Avatar</p>
-                <p className="text-slate-400 text-xs mt-0.5">Your archetype, ideal look, and AI avatar video</p>
+                <p className="text-white font-bold text-sm">Style Profile</p>
+                <p className="text-slate-400 text-xs mt-0.5">Your archetype, colors, and ideal look</p>
               </div>
               <ChevronRight size={16} className="text-slate-600 group-hover:text-violet-400 transition-colors" />
-            </div>
-          </Link>
-
-          {/* Outfit Builder */}
-          <Link href="/outfit-builder">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 flex items-center gap-4 hover:border-slate-600 transition-colors group">
-              <Shirt size={20} className="text-amber-400 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm">Outfit Builder</p>
-                <p className="text-slate-400 text-xs mt-0.5">3 outfit options for any occasion</p>
-              </div>
-              <ChevronRight size={16} className="text-slate-600 group-hover:text-amber-400 transition-colors" />
             </div>
           </Link>
 

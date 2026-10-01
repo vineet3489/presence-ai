@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
@@ -49,7 +48,6 @@ const ANALYSIS_STAGES = [
 ];
 
 export default function FaceScanPage() {
-  const router = useRouter();
   const [state, setState] = useState<State>('loading');
   const [showConsent, setShowConsent] = useState(false);
   const [objective, setObjective] = useState<Objective | null>(null);
@@ -66,7 +64,6 @@ export default function FaceScanPage() {
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [nextStepUrl, setNextStepUrl] = useState<string | null>(null);
   const [nextStepLabel, setNextStepLabel] = useState('');
-  const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -133,21 +130,6 @@ export default function FaceScanPage() {
       });
   }, [state]);
 
-  // Auto-redirect countdown once next step is known
-  useEffect(() => {
-    if (!nextStepUrl || state !== 'done') return;
-    setCountdown(8);
-    const interval = setInterval(() => {
-      setCountdown(c => {
-        if (c === null) return null;
-        if (c <= 1) { clearInterval(interval); router.push(nextStepUrl); return null; }
-        return c - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextStepUrl]);
-
   async function handleAnalyze() {
     if (!capturedBase64) return;
     setState('analyzing');
@@ -211,9 +193,6 @@ export default function FaceScanPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-violet-400 font-bold uppercase tracking-wider">Next Step</p>
                 <p className="text-white font-semibold text-sm mt-0.5">{nextStepLabel} →</p>
-                {countdown !== null && (
-                  <p className="text-xs text-slate-500 mt-0.5">Auto-continuing in {countdown}s</p>
-                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Link href={nextStepUrl}>
@@ -222,7 +201,7 @@ export default function FaceScanPage() {
                   </Button>
                 </Link>
                 <button
-                  onClick={() => { setNextStepUrl(null); setCountdown(null); }}
+                  onClick={() => setNextStepUrl(null)}
                   className="text-slate-600 hover:text-slate-400 text-lg leading-none px-1"
                 >×</button>
               </div>

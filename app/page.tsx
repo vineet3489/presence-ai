@@ -5,46 +5,46 @@ import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 /* ── Mock visuals ── */
 
-function MockAvatarPreview() {
+function MockPerceptionPreview() {
   return (
     <div className="relative mx-auto w-56">
       {/* Phone frame */}
       <div className="rounded-[2.5rem] border-4 border-slate-700 bg-slate-900 overflow-hidden shadow-2xl shadow-violet-950/40">
         {/* Screen */}
-        <div className="bg-slate-950 aspect-[9/16] relative flex flex-col items-center justify-end pb-6">
-          {/* Dark background with person silhouette */}
+        <div className="bg-slate-950 aspect-[9/16] relative flex flex-col justify-end pb-6 px-4">
+          {/* Dark background with subtle glow */}
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
-            {/* Subtle aura glow */}
-            <div className="absolute inset-x-0 top-8 flex justify-center">
+            <div className="absolute inset-x-0 top-10 flex justify-center">
               <div className="w-32 h-32 rounded-full bg-violet-500/10 blur-2xl" />
             </div>
-            {/* Person silhouette placeholder */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pt-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 border-2 border-violet-500/30" />
-              <div className="w-10 h-20 rounded-t-xl bg-gradient-to-b from-slate-600 to-slate-700/60 border border-slate-600/40" />
+          </div>
+
+          {/* Persona badge */}
+          <div className="relative z-10 flex items-center justify-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1 mx-auto mb-4 mt-8">
+            <span className="text-[10px] text-white font-semibold">23F, Delhi is viewing your profile…</span>
+          </div>
+
+          {/* Stat readouts */}
+          <div className="relative z-10 grid grid-cols-2 gap-2 mb-4">
+            <div className="bg-black/60 backdrop-blur rounded-xl px-3 py-2.5 text-center border border-slate-700/50">
+              <p className="text-lg font-black text-emerald-400">62%</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-wide">Swipe</p>
+            </div>
+            <div className="bg-black/60 backdrop-blur rounded-xl px-3 py-2.5 text-center border border-slate-700/50">
+              <p className="text-lg font-black text-sky-400">74%</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-wide">Reply</p>
             </div>
           </div>
 
-          {/* Playing indicator */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-            <div className="flex items-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[10px] text-white font-semibold">LIVE</span>
-            </div>
-            <span className="text-[10px] text-slate-400 bg-black/50 rounded-full px-2 py-1">0:15</span>
-          </div>
-
-          {/* Speech bubble */}
-          <div className="absolute bottom-16 left-3 right-3 z-10">
-            <div className="bg-black/70 backdrop-blur-sm rounded-xl px-3 py-2.5 border border-slate-700/50">
-              <p className="text-xs text-white leading-relaxed italic">
-                &ldquo;I walk into every room knowing exactly who I am…&rdquo;
-              </p>
-            </div>
+          {/* Narrative snippet */}
+          <div className="relative z-10 bg-black/70 backdrop-blur-sm rounded-xl px-3 py-2.5 border border-slate-700/50 mb-3">
+            <p className="text-xs text-white leading-relaxed italic">
+              &ldquo;Your first photo reads a little guarded — a warmer smile would help…&rdquo;
+            </p>
           </div>
 
           {/* Watermark */}
-          <div className="relative z-10 flex items-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1">
+          <div className="relative z-10 flex items-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1 mx-auto">
             <div className="w-3 h-3 rounded-full bg-violet-500" />
             <span className="text-[9px] text-slate-300 font-semibold">PresenceAI</span>
           </div>
@@ -53,13 +53,13 @@ function MockAvatarPreview() {
 
       {/* Floating badges */}
       <div className="absolute -left-8 top-12 bg-emerald-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        ✓ Your actual face
+        ✓ AI persona simulation
       </div>
       <div className="absolute -right-10 top-28 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        Your cloned voice
+        5 real personas
       </div>
       <div className="absolute -left-10 bottom-16 bg-amber-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        +18 DRI this month
+        +18% after 1 change
       </div>
     </div>
   );
@@ -147,7 +147,7 @@ export default function LandingPage() {
           <Link href="/login">
             <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">Sign in</Button>
           </Link>
-          <Link href="/avatar-preview">
+          <Link href="/login">
             <Button size="sm" className="bg-violet-600 hover:bg-violet-500 gap-1.5">
               Try free <ArrowRight size={14} />
             </Button>
@@ -163,25 +163,25 @@ export default function LandingPage() {
           <div className="flex-1 text-center md:text-left">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-700/50 bg-violet-900/20 px-4 py-1.5 text-xs text-violet-300 font-semibold mb-6">
               <Play size={11} className="fill-violet-400 text-violet-400" />
-              Free 15-second AI avatar — no account needed
+              See your first impression before you send it
             </div>
 
             <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.08] mb-5">
-              See yourself at<br />
-              your most<br />
-              <span className="gradient-text">confident.</span>
+              See how people<br />
+              actually<br />
+              <span className="gradient-text">see you.</span>
             </h1>
 
             <p className="text-slate-400 text-lg md:text-xl leading-relaxed mb-8 max-w-xl">
-              Upload your photo. Get a 15-second AI video of you — confident, clear, magnetic.
-              Then get a 90-day plan to make that version of you the real one.
+              Upload a photo and bio. See how a real persona reacts — swipe odds, reply odds,
+              and exactly what to change to improve them.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mb-8">
-              <Link href="/avatar-preview">
+              <Link href="/login">
                 <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-8 h-14">
                   <Play size={16} className="fill-white text-white" />
-                  Generate My Free Avatar
+                  Run My Perception Check
                 </Button>
               </Link>
               <Link href="/login">
@@ -192,7 +192,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-slate-400">
-              {['No account needed', 'Ready in ~2 minutes', 'Built for Indian men'].map(t => (
+              {['Free daily checks', 'Ready in ~2 minutes', 'Built for Indian men'].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-500" /> {t}
                 </span>
@@ -200,9 +200,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — avatar phone mockup */}
+          {/* Right — perception check phone mockup */}
           <div className="flex-1 flex justify-center">
-            <MockAvatarPreview />
+            <MockPerceptionPreview />
           </div>
         </div>
       </section>
@@ -211,10 +211,10 @@ export default function LandingPage() {
       <div className="border-y border-slate-800/60 bg-slate-900/40 py-5 px-5">
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
           {[
-            { num: '15 sec', desc: 'AI avatar, your face' },
+            { num: '5 personas', desc: 'simulate real reactions' },
             { num: '90 days', desc: 'structured coaching plan' },
-            { num: '7 AI tools', desc: 'face · voice · style · practice' },
-            { num: '₹499', desc: 'per month · cancel anytime' },
+            { num: '7 AI tools', desc: 'perception · voice · style · practice' },
+            { num: '₹79', desc: 'per week · cancel anytime' },
           ].map(({ num, desc }) => (
             <div key={num}>
               <p className="text-2xl font-black gradient-text">{num}</p>
@@ -297,7 +297,7 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <Link href="/avatar-preview">
+            <Link href="/login">
               <Button className="bg-amber-600 hover:bg-amber-500 gap-2">
                 <Flame size={15} /> Start my 90-day plan
               </Button>
@@ -350,13 +350,13 @@ export default function LandingPage() {
       <section className="border-t border-slate-800/60 bg-slate-900/30 py-16 px-5">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-black text-white mb-2">How it works</h2>
-          <p className="text-slate-500 text-sm mb-10">Avatar in 2 minutes. Coaching for 90 days.</p>
+          <p className="text-slate-500 text-sm mb-10">Perception check in 2 minutes. Coaching for 90 days.</p>
           <div className="grid md:grid-cols-4 gap-4">
             {[
-              { step: '01', title: 'Upload a photo', desc: 'One clear selfie. Get a free 15-second AI avatar — no account.', color: 'text-violet-400', border: 'border-violet-800/40' },
-              { step: '02', title: 'Complete assessment', desc: 'Face scan + voice check → unlock your Dating Readiness score.', color: 'text-amber-400', border: 'border-amber-800/40' },
-              { step: '03', title: 'Follow your plan', desc: 'Daily missions, AI practice, real-world challenges every week.', color: 'text-sky-400', border: 'border-sky-800/40' },
-              { step: '04', title: 'See the change', desc: 'Monthly reassessment shows your before/after. Share your progress.', color: 'text-emerald-400', border: 'border-emerald-800/40' },
+              { step: '01', title: 'Upload photo + bio', desc: 'Pick a persona. See swipe odds, reply odds, and their honest first read.', color: 'text-violet-400', border: 'border-violet-800/40' },
+              { step: '02', title: 'Get the fix', desc: 'Photo and bio suggestions built for exactly what that persona reacts to.', color: 'text-amber-400', border: 'border-amber-800/40' },
+              { step: '03', title: 'Apply & re-run', desc: 'See the before/after — swipe and reply odds moving in real numbers.', color: 'text-sky-400', border: 'border-sky-800/40' },
+              { step: '04', title: 'Keep improving', desc: 'Daily missions and coaching build on what your perception checks reveal.', color: 'text-emerald-400', border: 'border-emerald-800/40' },
             ].map(({ step, title, desc, color, border }) => (
               <div key={step} className={`rounded-2xl border ${border} bg-slate-900/50 p-5 text-left`}>
                 <p className={`text-3xl font-black mb-3 ${color}`}>{step}</p>
@@ -395,19 +395,19 @@ export default function LandingPage() {
       <section className="py-20 px-5 text-center border-t border-slate-800/60">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
-            See yourself at your<br />
-            <span className="gradient-text">most confident. Free.</span>
+            See how people<br />
+            <span className="gradient-text">actually see you. Free.</span>
           </h2>
           <p className="text-slate-400 text-lg mb-8">
-            Upload a photo. Get a 15-second AI video of you — confident, clear, magnetic. Takes 2 minutes.
+            Upload a photo and bio. Get your first perception check free, today. Takes 2 minutes.
           </p>
-          <Link href="/avatar-preview">
+          <Link href="/login">
             <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-10 py-6">
               <Play size={16} className="fill-white text-white" />
-              Generate My Free Avatar <ArrowRight size={18} />
+              Run My Perception Check <ArrowRight size={18} />
             </Button>
           </Link>
-          <p className="text-xs text-slate-600 mt-4">No account · No credit card · Just your face</p>
+          <p className="text-xs text-slate-600 mt-4">Free daily checks · No credit card required</p>
         </div>
       </section>
 

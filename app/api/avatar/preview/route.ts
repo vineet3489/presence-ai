@@ -138,13 +138,19 @@ export async function POST(req: Request) {
       throw new Error(`Video generation failed: ${errMsg}`);
     }
 
-    // Fire-and-forget: delete the talking photo after job is submitted
-    // so we never hit the 3-photo plan limit
-    fetch(`https://api.heygen.com/v1/talking_photo/${talkingPhotoId}`, {
+    // Fire-and-forget: delete the talking photo + its avatar_group (same id) after
+    // job is submitted so we never hit the 3-photo plan limit. The plan limit is
+    // counted against avatar_group, not talking_photo — both must be deleted.
+    fetch(`https://api.heygen.com/v2/talking_photo/${talkingPhotoId}`, {
       method: 'DELETE',
       headers: { 'X-Api-Key': HEYGEN },
     }).then(r => console.log('[avatar/preview] deleted talking photo', talkingPhotoId, r.status))
       .catch(e => console.error('[avatar/preview] delete talking photo failed (non-fatal):', e));
+    fetch(`https://api.heygen.com/v2/avatar_group/${talkingPhotoId}`, {
+      method: 'DELETE',
+      headers: { 'X-Api-Key': HEYGEN },
+    }).then(r => console.log('[avatar/preview] deleted avatar_group', talkingPhotoId, r.status))
+      .catch(e => console.error('[avatar/preview] delete avatar_group failed (non-fatal):', e));
 
     return NextResponse.json({ videoId });
 

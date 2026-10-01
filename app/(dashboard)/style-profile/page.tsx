@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { AvatarCard } from '@/components/dashboard/AvatarCard';
+import { SHOW_AVATAR_SECTION } from '@/lib/featureFlags';
 
 interface StyleProfile {
   archetype: string;
@@ -232,7 +233,7 @@ export default function StyleProfilePage() {
         {idealLookUrl ? (
           <div className="relative rounded-xl overflow-hidden border border-violet-700/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={idealLookUrl} alt="Your ideal look" className="w-full object-contain bg-slate-950" style={{ maxHeight: 600 }} />
+            <img src={idealLookUrl} alt="Your ideal look" className="w-full object-contain bg-slate-950" style={{ maxHeight: 720 }} />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950/90 to-transparent px-4 py-3">
               <div className="flex items-end justify-between">
                 <div>
@@ -290,19 +291,21 @@ export default function StyleProfilePage() {
         )}
       </div>
 
-      {/* Avatar Video */}
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles size={13} className="text-violet-400" />
-          <span className="text-sm font-semibold text-white">Your Ideal Look Avatar</span>
-          <span className="text-[10px] bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI Video</span>
+      {/* Avatar Video — hidden for the Percepta MVP pivot, flip to re-enable */}
+      {SHOW_AVATAR_SECTION && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={13} className="text-violet-400" />
+            <span className="text-sm font-semibold text-white">Your Ideal Look Avatar</span>
+            <span className="text-[10px] bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI Video</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">
+            A talking avatar built from your Ideal Look image above, scripted to your archetype.
+            Generate your Ideal Look first to use it here.
+          </p>
+          <AvatarCard key={avatarKey} />
         </div>
-        <p className="text-xs text-slate-500 mb-3">
-          A talking avatar built from your Ideal Look image above, scripted to your archetype.
-          Generate your Ideal Look first to use it here.
-        </p>
-        <AvatarCard key={avatarKey} />
-      </div>
+      )}
 
       {/* Colors */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">

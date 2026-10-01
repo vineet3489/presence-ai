@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
-  LayoutDashboard, Camera, Mic, Heart, TrendingUp,
-  MessageCircleHeart, Users, BarChart2, Sparkles, LogOut,
+  LayoutDashboard, Camera, Mic, Heart, Eye, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PRIMARY_NAV = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/perception', label: 'Perception', icon: Eye },
   { href: '/face-scan', label: 'Look', icon: Camera },
   { href: '/style-profile', label: 'Style', icon: Sparkles },
   { href: '/voice-check', label: 'Voice', icon: Mic },

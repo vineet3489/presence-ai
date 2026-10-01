@@ -4,15 +4,28 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const HEYGEN = process.env.HEYGEN_API_KEY!;
 
+// The plan's "3 photo avatars" limit is counted against the avatar_group object
+// (same id as the talking_photo), not the talking_photo object itself — both
+// must be deleted to actually free up the quota.
 async function deleteHeygenPhotoById(id: string): Promise<boolean> {
+  let ok = false;
   try {
-    const res = await fetch(`https://api.heygen.com/v1/talking_photo/${id}`, {
+    const res = await fetch(`https://api.heygen.com/v2/talking_photo/${id}`, {
       method: 'DELETE',
       headers: { 'X-Api-Key': HEYGEN },
     });
-    console.log('[reset-me] DELETE heygen photo', id, '→', res.status);
-    return res.ok;
-  } catch { return false; }
+    console.log('[reset-me] DELETE heygen talking_photo', id, '→', res.status);
+    ok = res.ok || ok;
+  } catch { /* non-fatal */ }
+  try {
+    const res = await fetch(`https://api.heygen.com/v2/avatar_group/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-Api-Key': HEYGEN },
+    });
+    console.log('[reset-me] DELETE heygen avatar_group', id, '→', res.status);
+    ok = res.ok || ok;
+  } catch { /* non-fatal */ }
+  return ok;
 }
 
 async function clearHeygenPhotoAvatars(admin: ReturnType<typeof createAdminClient>, uid: string): Promise<string> {

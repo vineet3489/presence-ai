@@ -54,8 +54,14 @@ export async function POST(req: NextRequest) {
         .update({ subscription_status: 'expired' })
         .eq('razorpay_subscription_id', subscriptionId);
       break;
-    case 'subscription.authenticated':
-      // Mandate authorized — backup for cases where the client-side handler fails
+    case 'subscription.authenticated': {
+      // Mandate authorized — backup for cases where the client-side handler fails.
+      // razorpay_subscription_id isn't saved on the profile until the client's
+      // verify-subscription call succeeds, so match on notes.user_id (set at
+      // subscription creation time) instead — it's reliable even if that call never fires.
+      const notes = entity.notes as { user_id?: string } | undefined;
+      const userId = notes?.user_id;
+      if (!userId) break;
       await admin
         .from('user_profiles')
         .update({
@@ -63,9 +69,10 @@ export async function POST(req: NextRequest) {
           trial_started_at: new Date().toISOString(),
           razorpay_subscription_id: subscriptionId,
         })
-        .eq('razorpay_subscription_id', subscriptionId)
+        .eq('user_id', userId)
         .is('trial_started_at', null); // only update if not already set
       break;
+    }
   }
 
   return NextResponse.json({ ok: true });

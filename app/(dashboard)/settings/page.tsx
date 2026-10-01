@@ -1,11 +1,45 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+interface SubProfile {
+  subscription_status: string | null;
+  trial_started_at: string | null;
+  subscription_ends_at: string | null;
+}
+
+function subLabel(profile: SubProfile | null): { text: string; color: string } {
+  if (!profile) return { text: 'Unknown', color: 'text-slate-400' };
+  const now = Date.now();
+  const { subscription_status: status, trial_started_at, subscription_ends_at } = profile;
+
+  if (status === 'active') {
+    const endsAt = subscription_ends_at ? new Date(subscription_ends_at) : null;
+    if (!endsAt || endsAt.getTime() > now) {
+      const label = endsAt ? `Active · renews ${endsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : 'Active';
+      return { text: label, color: 'text-emerald-400' };
+    }
+    return { text: 'Expired', color: 'text-red-400' };
+  }
+
+  if (status === 'trial' && trial_started_at) {
+    const trialEnd = new Date(trial_started_at).getTime() + 3 * 24 * 60 * 60 * 1000;
+    if (trialEnd > now) {
+      const daysLeft = Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000));
+      return { text: `Free trial · ${daysLeft} day${daysLeft === 1 ? '' : 's'} left`, color: 'text-violet-400' };
+    }
+    return { text: 'Trial ended', color: 'text-red-400' };
+  }
+
+  return { text: 'No active subscription', color: 'text-slate-400' };
+}
+
 export default function SettingsPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [dob, setDob] = useState('');
@@ -16,6 +50,8 @@ export default function SettingsPage() {
   const [weightKg, setWeightKg] = useState('');
   const [savingBody, setSavingBody] = useState(false);
   const [bodySaved, setBodySaved] = useState(false);
+  const [subProfile, setSubProfile] = useState<SubProfile | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -24,16 +60,25 @@ export default function SettingsPage() {
     });
     supabase
       .from('user_profiles')
-      .select('date_of_birth, place_of_birth, height_cm, weight_kg')
+      .select('date_of_birth, place_of_birth, height_cm, weight_kg, subscription_status, trial_started_at, subscription_ends_at')
       .single()
       .then(({ data }) => {
         if (data?.date_of_birth) setDob(data.date_of_birth);
         if (data?.place_of_birth) setPlaceOfBirth(data.place_of_birth);
         if (data?.height_cm) setHeightCm(String(data.height_cm));
         if (data?.weight_kg) setWeightKg(String(data.weight_kg));
+        setSubProfile(data as SubProfile | null);
         setLoading(false);
       });
   }, []);
+
+  async function handleCancel() {
+    if (!confirm("Cancel your subscription? You'll lose access at the end of the current period.")) return;
+    setCancelling(true);
+    await fetch('/api/payment/cancel-subscription', { method: 'POST' });
+    setCancelling(false);
+    router.push('/trial');
+  }
 
   async function handleSaveProfile() {
     setSavingProfile(true);
@@ -174,7 +219,34 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      {/* Subscription — hidden for testing */}
+      {/* Subscription */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-3">
+        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Subscription</p>
+        {subProfile && (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm font-semibold ${subLabel(subProfile).color}`}>{subLabel(subProfile).text}</p>
+              <p className="text-xs text-slate-600 mt-0.5">₹79/week after trial · cancel anytime</p>
+            </div>
+            {(subProfile.subscription_status === 'active' || subProfile.subscription_status === 'trial') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="text-red-400 border-red-900/50 hover:bg-red-900/20 hover:text-red-300"
+              >
+                {cancelling ? <Loader2 size={13} className="animate-spin" /> : 'Cancel'}
+              </Button>
+            )}
+          </div>
+        )}
+        {subProfile && subProfile.subscription_status !== 'active' && subProfile.subscription_status !== 'trial' && (
+          <Button size="sm" onClick={() => router.push('/trial')} className="bg-violet-600 hover:bg-violet-500">
+            Resubscribe →
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

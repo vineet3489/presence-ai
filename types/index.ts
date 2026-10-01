@@ -24,6 +24,9 @@ export interface UserProfile {
   presence_xp: number;
   tip_streak: number;
   last_tip_date: string | null;
+  bio_text?: string | null;
+  sim_count_today?: number;
+  sim_count_date?: string | null;
   created_at: string;
 }
 
@@ -166,6 +169,52 @@ export interface DatePrepResult {
   thingsToAvoid: string[];
   nervousnessStrategy: string;
   overallCoaching: string;
+}
+
+export interface PerceptionTags {
+  confidence: 'High' | 'Medium' | 'Low';
+  attractiveness: 'Above average' | 'Average' | 'Below average';
+  trustworthiness: 'High' | 'Medium' | 'Low';
+  approachability: 'High' | 'Medium' | 'Low';
+}
+
+export interface PerceptionSimulationResult {
+  personaId: string;
+  swipeProbability: number;
+  replyProbability: number;
+  profileStrengthScore: number;
+  tags: PerceptionTags;
+  narrative: string;
+}
+
+export interface BioVariant {
+  tone: 'confident' | 'funny' | 'minimalist';
+  text: string;
+}
+
+export interface ProfileOptimizerResult {
+  bioVariants: BioVariant[];
+  suggestions: string[];
+}
+
+export interface SimulationSession {
+  id: string;
+  personaId: string;
+  photoStoragePath: string | null;
+  bioText: string | null;
+  simulation: PerceptionSimulationResult;
+  optimizer: ProfileOptimizerResult;
+  parentSimulationId: string | null;
+  createdAt: string;
+}
+
+export interface ImprovementLogEntry {
+  id: string;
+  beforeSimulationId: string;
+  afterSimulationId: string | null;
+  suggestionType: 'bio_rewrite' | 'manual_edit';
+  suggestionDetail: Record<string, unknown>;
+  appliedAt: string;
 }
 
 export interface AnalysisSession {

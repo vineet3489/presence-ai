@@ -186,8 +186,8 @@ export function AvatarCard({ subscribed = true }: { subscribed?: boolean }) {
         {/* Square crop — focuses on face+torso, eliminates black side bars */}
         <div className="mx-4 mb-4">
           <div
-            className="relative bg-black mx-auto rounded-xl overflow-hidden"
-            style={{ aspectRatio: '1/1', maxWidth: '400px' }}
+            className="relative bg-black mx-auto w-full rounded-xl overflow-hidden"
+            style={{ aspectRatio: '1/1', maxWidth: '640px' }}
           >
             <div
               className="absolute inset-0"

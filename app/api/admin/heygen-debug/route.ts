@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     const toDelete = all.filter(p => p.id && !p.is_preset);
     const results: { id: string; status: number; body: string }[] = [];
     for (const p of toDelete) {
-      const res = await fetch(`https://api.heygen.com/v1/talking_photo/${p.id}`, {
+      const res = await fetch(`https://api.heygen.com/v2/talking_photo/${p.id}`, {
         method: 'DELETE',
         headers: { 'X-Api-Key': HEYGEN },
       });
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
   if (!body.id) return NextResponse.json({ error: 'id or deleteAll required' }, { status: 400 });
 
-  const res = await fetch(`https://api.heygen.com/v1/talking_photo/${body.id}`, {
+  const res = await fetch(`https://api.heygen.com/v2/talking_photo/${body.id}`, {
     method: 'DELETE',
     headers: { 'X-Api-Key': HEYGEN },
   });
