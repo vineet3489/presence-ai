@@ -1,6 +1,42 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { callClaude } from '@/lib/claude/client';
+
+export interface LookSpec {
+  hair: string;
+  outfit: string;
+  accessory: string;
+  grooming: string;
+  pose: string;
+  tips: string[];
+}
+
+const LOOK_SPEC_SYSTEM = `You are a celebrity stylist art-directing an aspirational portrait. From the coaching notes, decide ONE perfect, flattering look for this exact person and describe it as precise visual instructions — not advice, not critique.
+
+Respond with valid JSON only:
+{
+  "hair": "string (exact cut + how it's styled, max 14 words, e.g. 'textured crop, soft side part on the left, matte finish, clean tapered sides')",
+  "outfit": "string (exact pieces + colors + fit, max 18 words, e.g. 'crisp ivory linen shirt, top button open, sleeves rolled, beige chinos')",
+  "accessory": "string (one accessory that elevates the look, max 8 words, e.g. 'gold aviator sunglasses tucked in shirt placket')",
+  "grooming": "string (max 12 words, e.g. 'neatly shaped short stubble, clean neckline, clear even skin')",
+  "pose": "string (max 12 words, e.g. 'shoulders back, chin slightly up, relaxed confident half-smile')",
+  "tips": ["4 bold, imperative style tips the user can copy in real life — max 7 words each, concrete and visual, e.g. 'Rock gold aviators', 'Part your hair left', 'Beige + white, brown loafers', 'Shoulders back, chin up'"]
+}`;
+
+async function buildLookSpec(notes: string): Promise<LookSpec | null> {
+  try {
+    const raw = await callClaude(LOOK_SPEC_SYSTEM, notes, 600);
+    const match = raw.match(/\{[\s\S]*\}/);
+    const spec = JSON.parse(match ? match[0] : raw) as LookSpec;
+    if (!spec.hair || !spec.outfit || !Array.isArray(spec.tips)) return null;
+    spec.tips = spec.tips.slice(0, 4);
+    return spec;
+  } catch (err) {
+    console.error('[ideal-look] look spec failed, using raw notes', err);
+    return null;
+  }
+}
 
 const GEMINI_KEY = () => process.env.GOOGLE_AI_API_KEY!;
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -231,17 +267,31 @@ export async function POST() {
 
   const colors = styleData.colorPalette?.primary?.slice(0, 3).join(', ') || 'navy, white';
 
+  const spec = await buildLookSpec([
+    `Style archetype: ${styleData.archetype}`,
+    `Hair coaching: ${hairstyle}`,
+    `Grooming coaching: ${grooming}`,
+    `Outfit idea: ${outfit}`,
+    `Their best colours: ${colors}`,
+    `Posture coaching: ${posture}`,
+    `Expression coaching: ${expression}`,
+    physique ? `Build: ${physique}` : '',
+    p?.age ? `Age: ${p.age}` : '',
+    p?.city ? `City: ${p.city}` : '',
+  ].filter(Boolean).join('\n'));
+
   // Short edit instruction — keeps the model in edit mode, not generation mode
   const prompt = [
-    'Edit this photo of one person. Keep the face exactly as-is — same identity, no duplicates.',
-    `Hair: ${hairstyle}`,
-    `Grooming: ${grooming}`,
-    `Outfit: ${outfit}, colours ${colors}${physique ? `, fitted for ${physique} build` : ''}.`,
-    `Posture and expression: ${posture}, ${expression}.`,
-    'Background: plain dark navy seamless studio backdrop, professional softbox lighting.',
+    'Edit this photo of one person into an aspirational, magazine-quality portrait of them at their absolute best. Keep the face exactly as-is — same identity, same features, no duplicates.',
+    `Hair: ${spec?.hair ?? hairstyle}. Perfectly cut and styled, salon-fresh.`,
+    `Grooming: ${spec?.grooming ?? grooming}`,
+    `Outfit: ${spec?.outfit ?? `${outfit}, colours ${colors}`}${physique ? `, impeccably tailored for a ${physique} build` : ', impeccably tailored'}. Crisp, wrinkle-free fabric.`,
+    spec?.accessory ? `Accessory: ${spec.accessory}.` : '',
+    `Pose and expression: ${spec?.pose ?? `${posture}, ${expression}`}. Confident, warm, magnetic.`,
+    'Background: plain dark navy seamless studio backdrop, flattering professional softbox lighting with soft rim light.',
     'Framing: chest-up portrait only. Crop at the chest — do not render legs, hips, hands, or any lower body.',
     'Output exactly one person, one clean crop — no ghosting, no duplicate limbs, no extra people or body parts anywhere in frame.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   try {
     const model = await pickModel();
@@ -278,9 +328,16 @@ export async function POST() {
     );
     if (uploadErr) throw new Error(`Could not save ideal look: ${uploadErr.message}`);
 
+    const tips = spec?.tips ?? [];
+    await admin.storage.from('face-scans').upload(
+      `${uid}/last-look-tips.json`,
+      Buffer.from(JSON.stringify({ tips })),
+      { contentType: 'application/json', upsert: true }
+    ).catch(() => {});
+
     const { data: signed } = await admin.storage.from('face-scans').createSignedUrl(storagePath, 3600);
 
-    return NextResponse.json({ url: signed?.signedUrl ?? null, archetype: styleData.archetype, model });
+    return NextResponse.json({ url: signed?.signedUrl ?? null, archetype: styleData.archetype, tips, model });
 
   } catch (err) {
     console.error('[ideal-look]', err);

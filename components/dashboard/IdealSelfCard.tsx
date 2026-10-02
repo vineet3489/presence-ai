@@ -5,17 +5,19 @@ import Link from 'next/link';
 import { Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AvatarCard } from './AvatarCard';
+import { IdealLookTips } from './IdealLookTips';
 import { SHOW_AVATAR_SECTION } from '@/lib/featureFlags';
 
 /** Dashboard hero for "the best version of you": the Ideal Look image + the talking avatar built from it. */
 export function IdealSelfCard({ hasStyleProfile }: { hasStyleProfile: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [tips, setTips] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/style-profile/last-look')
       .then((r) => r.json())
-      .then((d: { url: string | null }) => setUrl(d.url))
+      .then((d: { url: string | null; tips?: string[] }) => { setUrl(d.url); setTips(d.tips ?? []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -61,6 +63,7 @@ export function IdealSelfCard({ hasStyleProfile }: { hasStyleProfile: boolean })
           </Link>
         </div>
       </div>
+      <IdealLookTips tips={tips} />
       {SHOW_AVATAR_SECTION && <AvatarCard />}
     </div>
   );

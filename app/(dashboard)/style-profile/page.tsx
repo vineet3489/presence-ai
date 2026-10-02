@@ -7,6 +7,7 @@ import { ValueHeader } from '@/components/ui/ValueHeader';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { AvatarCard } from '@/components/dashboard/AvatarCard';
+import { IdealLookTips } from '@/components/dashboard/IdealLookTips';
 import { SHOW_AVATAR_SECTION } from '@/lib/featureFlags';
 
 interface StyleProfile {
@@ -74,6 +75,7 @@ export default function StyleProfilePage() {
   }, []);
 
   const [idealLookUrl, setIdealLookUrl] = useState<string | null>(null);
+  const [idealLookTips, setIdealLookTips] = useState<string[]>([]);
   const [generatingLook, setGeneratingLook] = useState(false);
   const [idealLookError, setIdealLookError] = useState<string | null>(null);
   // Bump this after ideal look generates — forces AvatarCard to remount and re-check last-video
@@ -83,13 +85,19 @@ export default function StyleProfilePage() {
   useEffect(() => {
     fetch('/api/style-profile/last-look')
       .then((r) => r.json())
-      .then((d: { url: string | null }) => { if (d.url) setIdealLookUrl((cur) => cur ?? d.url); })
+      .then((d: { url: string | null; tips?: string[] }) => {
+        if (d.url) {
+          setIdealLookUrl((cur) => cur ?? d.url);
+          setIdealLookTips((cur) => (cur.length ? cur : d.tips ?? []));
+        }
+      })
       .catch(() => {});
   }, []);
 
   async function generateIdealLook() {
     // Clear old image immediately so user never sees stale result
     setIdealLookUrl(null);
+    setIdealLookTips([]);
     setIdealLookError(null);
     setGeneratingLook(true);
     try {
@@ -100,6 +108,7 @@ export default function StyleProfilePage() {
       const data = await res.json();
       if (res.ok && data.url) {
         setIdealLookUrl(`${data.url}&_t=${Date.now()}`);
+        setIdealLookTips(data.tips ?? []);
         // Force AvatarCard to remount → it re-checks last-video → sees null (deleted) → shows Generate
         setAvatarKey(k => k + 1);
       } else {
@@ -239,7 +248,7 @@ export default function StyleProfilePage() {
           )}
         </div>
         <p className="text-xs text-slate-500 mb-3">
-          Your actual face scan photo, styled by AI — same face, ideal outfit, hair, and confidence.
+          You, at your best — ideal hair, outfit, and confidence.
         </p>
 
         {idealLookUrl ? (
@@ -299,6 +308,11 @@ export default function StyleProfilePage() {
                 <p className="text-[10px] text-slate-600">Uses your face scan, hairstyle coaching &amp; style archetype</p>
               </div>
             )}
+          </div>
+        )}
+        {idealLookUrl && (
+          <div className="mt-3">
+            <IdealLookTips tips={idealLookTips} />
           </div>
         )}
       </div>

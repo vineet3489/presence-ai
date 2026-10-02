@@ -13,10 +13,16 @@ export async function GET() {
       .from('face-scans')
       .createSignedUrl(`${user.id}/last-look.jpg`, 3600);
 
-    if (error || !data?.signedUrl) return NextResponse.json({ url: null });
-    return NextResponse.json({ url: data.signedUrl });
+    if (error || !data?.signedUrl) return NextResponse.json({ url: null, tips: [] });
+
+    let tips: string[] = [];
+    const { data: tipsFile } = await admin.storage.from('face-scans').download(`${user.id}/last-look-tips.json`);
+    if (tipsFile) {
+      try { tips = (JSON.parse(await tipsFile.text()) as { tips?: string[] }).tips ?? []; } catch { /* no tips */ }
+    }
+    return NextResponse.json({ url: data.signedUrl, tips });
   } catch {
-    return NextResponse.json({ url: null });
+    return NextResponse.json({ url: null, tips: [] });
   }
 }
 
@@ -30,7 +36,7 @@ export async function DELETE() {
   const uid = user.id;
 
   // 1. Delete old ideal look image
-  await admin.storage.from('face-scans').remove([`${uid}/last-look.jpg`]).catch(() => {});
+  await admin.storage.from('face-scans').remove([`${uid}/last-look.jpg`, `${uid}/last-look-tips.json`]).catch(() => {});
 
   // 2. Delete all HeyGen cache files so avatar re-uploads fresh image
   const { data: files } = await admin.storage.from('face-scans').list(uid);
