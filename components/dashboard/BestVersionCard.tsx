@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Sparkles, Loader2, Scissors, Shirt, Smile, Mic, PersonStanding, Brush } from 'lucide-react';
 
@@ -115,29 +116,37 @@ export function BestVersionCard() {
     );
   }
 
+  const tiles = rows.filter(({ key }) => key !== 'archetype' && data?.[key]);
+
   return (
-    <div className="rounded-2xl border border-amber-700/40 bg-gradient-to-br from-amber-950/20 to-slate-900/80 overflow-hidden">
-      <div className="p-4 flex items-center gap-2 border-b border-amber-800/20">
-        <Sparkles size={15} className="text-amber-400" />
-        <span className="text-sm font-bold text-white">Your Best Version</span>
+    <div className="rounded-2xl border border-amber-700/40 bg-gradient-to-br from-amber-950/20 to-slate-900/80 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles size={15} className="text-amber-400" />
+          <span className="text-sm font-bold text-white">Your Best Version</span>
+        </div>
+        <Link href="/style-profile" className="text-xs text-slate-400 hover:text-white">Details →</Link>
       </div>
-      <div className="divide-y divide-slate-800/60">
-        {rows.map(({ key, label, icon: Icon }) => {
-          const value = data?.[key];
-          if (!value) return null;
-          return (
-            <div key={key} className="flex items-start gap-3 px-4 py-3">
-              <div className="w-7 h-7 rounded-lg bg-violet-900/30 border border-violet-800/30 flex items-center justify-center shrink-0 mt-0.5">
-                <Icon size={13} className="text-violet-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">{label}</p>
-                <p className="text-sm text-slate-200 mt-0.5 leading-snug">{value}</p>
-              </div>
+      {data?.archetype && (
+        <p className="text-xl font-black text-white mb-3">{data.archetype}</p>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        {tiles.map(({ key, label, icon: Icon }) => (
+          <div key={key} className="rounded-xl bg-slate-950/50 border border-slate-800 p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Icon size={12} className="text-violet-400" />
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">{label}</p>
             </div>
-          );
-        })}
+            <p className="text-xs text-slate-200 leading-snug">{shorten(data![key]!)}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+/** First clause only, capped — the dashboard is for scanning, details live on Style Profile. */
+function shorten(text: string, max = 60) {
+  const first = text.split(/ — |\. |: /)[0].trim();
+  return first.length > max ? `${first.slice(0, max - 1).trimEnd()}…` : first;
 }

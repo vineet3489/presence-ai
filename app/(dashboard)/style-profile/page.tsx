@@ -79,6 +79,14 @@ export default function StyleProfilePage() {
   // Bump this after ideal look generates — forces AvatarCard to remount and re-check last-video
   const [avatarKey, setAvatarKey] = useState(0);
 
+  // Show the previously generated Ideal Look on return visits
+  useEffect(() => {
+    fetch('/api/style-profile/last-look')
+      .then((r) => r.json())
+      .then((d: { url: string | null }) => { if (d.url) setIdealLookUrl((cur) => cur ?? d.url); })
+      .catch(() => {});
+  }, []);
+
   async function generateIdealLook() {
     // Clear old image immediately so user never sees stale result
     setIdealLookUrl(null);
@@ -300,12 +308,11 @@ export default function StyleProfilePage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={13} className="text-violet-400" />
-            <span className="text-sm font-semibold text-white">Your Ideal Look Avatar</span>
+            <span className="text-sm font-semibold text-white">Your Ideal Self — in motion</span>
             <span className="text-[10px] bg-violet-900/50 text-violet-400 border border-violet-700/40 rounded-full px-2 py-0.5">AI Video</span>
           </div>
           <p className="text-xs text-slate-500 mb-3">
-            A talking avatar built from your Ideal Look image above, scripted to your archetype.
-            Generate your Ideal Look first to use it here.
+            Your ideal look, speaking in your voice — with zero fillers.
           </p>
           <AvatarCard key={avatarKey} />
         </div>
