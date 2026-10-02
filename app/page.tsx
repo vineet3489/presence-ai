@@ -1,67 +1,53 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, TrendingUp, Eye, ScanFace, Mic, Sparkles, MessageCircleHeart, Heart, Lock, ShieldCheck, XCircle } from 'lucide-react';
 import { PERSONAS } from '@/lib/personas';
+import { MemberCount, Testimonials, Transformation, PainSection, ScienceSection, ExampleResult } from '@/components/landing/ProofSections';
+
+// Member count is read from the DB — refresh hourly rather than per request
+export const revalidate = 3600;
 import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 /* ── Mock visuals ── */
 
-function MockPerceptionPreview() {
+function HeroVisual() {
   return (
-    <div className="relative mx-auto w-56">
-      {/* Phone frame */}
-      <div className="rounded-[2.5rem] border-4 border-slate-700 bg-slate-900 overflow-hidden shadow-2xl shadow-violet-950/40">
-        {/* Screen */}
-        <div className="bg-slate-950 aspect-[9/16] relative flex flex-col justify-end pb-6 px-4">
-          {/* Dark background with subtle glow */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
-            <div className="absolute inset-x-0 top-10 flex justify-center">
-              <div className="w-32 h-32 rounded-full bg-violet-500/10 blur-2xl" />
-            </div>
+    <div className="relative w-full max-w-md mx-auto">
+      <div className="grid grid-cols-[0.8fr_1fr] gap-3 items-end">
+        {/* Before */}
+        <div className="relative rounded-2xl overflow-hidden border border-slate-700 aspect-[4/5] opacity-90">
+          <Image src="/hero/model-before.jpg" alt="Everyday selfie" fill sizes="200px" className="object-cover grayscale-[30%]" priority />
+          <span className="absolute top-2 left-2 text-[10px] font-bold bg-slate-950/80 text-slate-300 rounded-full px-2 py-0.5">Before</span>
+          <div className="absolute bottom-2 inset-x-2 rounded-lg bg-slate-950/85 px-2 py-1.5 text-center">
+            <p className="text-lg font-black text-amber-400 leading-none">31%</p>
+            <p className="text-[9px] text-slate-400 uppercase tracking-wide">Swipe odds</p>
           </div>
+        </div>
 
-          {/* Persona badge */}
-          <div className="relative z-10 flex items-center justify-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1 mx-auto mb-4 mt-8">
-            <span className="text-[10px] text-white font-semibold">23F, Delhi is viewing your profile…</span>
-          </div>
-
-          {/* Stat readouts */}
-          <div className="relative z-10 grid grid-cols-2 gap-2 mb-4">
-            <div className="bg-black/60 backdrop-blur rounded-xl px-3 py-2.5 text-center border border-slate-700/50">
-              <p className="text-lg font-black text-emerald-400">62%</p>
-              <p className="text-[9px] text-slate-400 uppercase tracking-wide">Swipe</p>
-            </div>
-            <div className="bg-black/60 backdrop-blur rounded-xl px-3 py-2.5 text-center border border-slate-700/50">
-              <p className="text-lg font-black text-sky-400">74%</p>
-              <p className="text-[9px] text-slate-400 uppercase tracking-wide">Reply</p>
-            </div>
-          </div>
-
-          {/* Narrative snippet */}
-          <div className="relative z-10 bg-black/70 backdrop-blur-sm rounded-xl px-3 py-2.5 border border-slate-700/50 mb-3">
-            <p className="text-xs text-white leading-relaxed italic">
-              &ldquo;Your first photo reads a little guarded — a warmer smile would help…&rdquo;
-            </p>
-          </div>
-
-          {/* Watermark */}
-          <div className="relative z-10 flex items-center gap-1.5 bg-black/50 rounded-full px-2.5 py-1 mx-auto">
-            <div className="w-3 h-3 rounded-full bg-violet-500" />
-            <span className="text-[9px] text-slate-300 font-semibold">PresenceAI</span>
+        {/* After */}
+        <div className="relative rounded-2xl overflow-hidden border-2 border-violet-500 aspect-[4/5] shadow-2xl shadow-violet-900/50">
+          <Image src="/hero/model-after.jpg" alt="Same man, styled as his Ideal Look" fill sizes="260px" className="object-cover" priority />
+          <span className="absolute top-2 left-2 text-[10px] font-bold bg-violet-600 text-white rounded-full px-2 py-0.5">Ideal Look</span>
+          <div className="absolute bottom-2 inset-x-2 rounded-lg bg-slate-950/85 px-2 py-1.5 text-center">
+            <p className="text-2xl font-black text-emerald-400 leading-none">74%</p>
+            <p className="text-[9px] text-slate-400 uppercase tracking-wide">Swipe odds</p>
           </div>
         </div>
       </div>
 
-      {/* Floating badges */}
-      <div className="absolute -left-8 top-12 bg-emerald-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        ✓ AI persona simulation
+      {/* The fix */}
+      <div className="relative -mt-3 mx-3 rounded-2xl border border-amber-600/60 bg-slate-950/95 backdrop-blur p-3.5 shadow-xl">
+        <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+          <Zap size={10} /> What changed
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {['Side-part crop', 'Ivory linen shirt', 'Gold aviators', 'Chin up, warm smile'].map((t) => (
+            <span key={t} className="text-[11px] font-semibold text-white bg-slate-800 border border-slate-700 rounded-full px-2.5 py-1">{t}</span>
+          ))}
+        </div>
       </div>
-      <div className="absolute -right-10 top-28 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        {PERSONAS.length} real personas
-      </div>
-      <div className="absolute -left-10 bottom-16 bg-amber-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        +18% after 1 change
-      </div>
+      <p className="text-[10px] text-slate-600 text-center mt-2">Illustration — AI-generated model, not a real user. Numbers are illustrative.</p>
     </div>
   );
 }
@@ -157,36 +143,34 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="max-w-6xl mx-auto px-5 pt-16 pb-20 md:pt-24">
-        <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
+      <section className="max-w-6xl mx-auto px-5 pt-8 pb-12 md:pt-14 md:pb-16">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
 
           {/* Left copy */}
           <div className="flex-1 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-700/50 bg-violet-900/20 px-4 py-1.5 text-xs text-violet-300 font-semibold mb-6">
+            <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-violet-700/50 bg-violet-900/20 px-4 py-1.5 text-xs text-violet-300 font-semibold mb-4">
               <Play size={11} className="fill-violet-400 text-violet-400" />
               See your first impression before you send it
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.08] mb-5">
-              See how people<br />
-              actually<br />
-              <span className="gradient-text">see you.</span>
+            <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.05] mb-4">
+              See how people actually <span className="gradient-text">see you.</span>
             </h1>
 
-            <p className="text-slate-300 text-lg md:text-xl leading-relaxed mb-8 max-w-xl">
+            <p className="text-slate-300 text-lg md:text-xl leading-relaxed mb-6 max-w-xl">
               Get your <span className="text-white font-bold">swipe odds</span>, the{' '}
               <span className="text-white font-bold">one fix</span> that raises them, and a coach for your
               look, voice, and texts.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mb-5">
               <Link href="/login">
                 <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-8 h-14">
                   <Play size={16} className="fill-white text-white" />
                   Try it free
                 </Button>
               </Link>
-              <Link href="/login">
+              <Link href="/login" className="hidden sm:block">
                 <Button size="lg" variant="outline" className="gap-2 h-14 text-base">
                   Sign in
                 </Button>
@@ -200,11 +184,12 @@ export default function LandingPage() {
                 </span>
               ))}
             </div>
+            <MemberCount />
           </div>
 
           {/* Right — perception check phone mockup */}
           <div className="flex-1 flex justify-center">
-            <MockPerceptionPreview />
+            <HeroVisual />
           </div>
         </div>
       </section>
@@ -225,6 +210,7 @@ export default function LandingPage() {
           ))}
         </div>
       </div>
+
 
       {/* ── WHAT YOU GET ── */}
       <section className="max-w-6xl mx-auto px-5 py-20">
@@ -252,6 +238,13 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      <PainSection />
+      <ScienceSection />
+
+      <ExampleResult />
+      <Transformation />
+      <Testimonials />
 
       {/* ── MISSION FEATURE ── */}
       <section className="border-y border-slate-800/60 bg-slate-900/30 py-20 px-5">
