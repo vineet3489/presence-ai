@@ -237,10 +237,10 @@ export async function POST() {
     `Hair: ${hairstyle}`,
     `Grooming: ${grooming}`,
     `Outfit: ${outfit}, colours ${colors}${physique ? `, fitted for ${physique} build` : ''}.`,
-    `Pose: ${posture}. Expression: ${expression}.`,
+    `Posture and expression: ${posture}, ${expression}.`,
     'Background: plain dark navy seamless studio backdrop, professional softbox lighting.',
-    'Output must contain exactly one person and one clean exposure — no ghosting, no multiple poses, no extra people anywhere in frame.',
-    'Framing: waist-up portrait, facing camera, centered, filling the frame.',
+    'Framing: chest-up portrait only. Crop at the chest — do not render legs, hips, hands, or any lower body.',
+    'Output exactly one person, one clean crop — no ghosting, no duplicate limbs, no extra people or body parts anywhere in frame.',
   ].join('\n');
 
   try {

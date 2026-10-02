@@ -434,6 +434,8 @@ CRITICAL FRAMING RULES:
 - profileStrengthScore is explicitly RELATIVE (how this profile compares to typical profiles this persona swipes on), not an absolute judgment of the person's worth or attractiveness. Frame it that way internally even though it's returned as a plain number.
 - The narrative must end on an actionable note, not a flat verdict — the last sentence should point toward what changes the outcome.
 - bioVariants and suggestions must always be genuinely specific to what's in THIS photo/bio — never generic dating-app advice.
+- actionNow is the single most important field: ONE concrete, specific, imperative instruction the user can act on in the next 10 minutes (e.g. "Swap your first photo for a solo shot, chin up, warmer smile" not "improve your photos"). Max 12 words. This is what the user actually does — make it count.
+- Keep narrative SHORT — max 2 sentences. Users skim; don't make them read a paragraph to find the point.
 
 Always respond with a valid JSON object matching this exact structure:
 {
@@ -447,7 +449,8 @@ Always respond with a valid JSON object matching this exact structure:
       "trustworthiness": "High" | "Medium" | "Low",
       "approachability": "High" | "Medium" | "Low"
     },
-    "narrative": "string (1 paragraph, written as this persona's first-impression reaction, ends with an actionable note)"
+    "actionNow": "string (ONE short imperative sentence, max 12 words — the single highest-impact change to make right now)",
+    "narrative": "string (max 2 short sentences, written as this persona's first-impression reaction)"
   },
   "optimizer": {
     "bioVariants": [
@@ -455,7 +458,7 @@ Always respond with a valid JSON object matching this exact structure:
       {"tone": "funny", "text": "string (rewritten bio, funny tone)"},
       {"tone": "minimalist", "text": "string (rewritten bio, minimalist tone)"}
     ],
-    "suggestions": ["string (specific, actionable)", "string", "string"]
+    "suggestions": ["string (specific, actionable, max 8 words)", "string", "string"]
   }
 }`;
 

@@ -24,11 +24,11 @@ Respond with a valid JSON object:
       "outfit": "string (specific 1-sentence outfit — pieces + colors only, no explanation)"
     }
   ],
-  "hairAdvice": "string (1 sentence — exact hairstyle name + why)",
-  "grooming": "string (1-2 sentences — key grooming priorities for their age and context)"
+  "hairAdvice": "string (1 short sentence, max 15 words — exact hairstyle name + why)",
+  "grooming": "string (1 short sentence, max 20 words — the single highest-priority grooming fix, not a routine list)"
 }
 
-Generate exactly 2 signatureOutfits (Casual + Work).`;
+Generate exactly 2 signatureOutfits (Casual + Work). Keep every field short and scannable — users skim on mobile, don't write paragraphs.`;
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();

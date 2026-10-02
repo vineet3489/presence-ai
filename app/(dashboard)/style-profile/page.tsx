@@ -179,8 +179,8 @@ export default function StyleProfilePage() {
       {/* Archetype */}
       <div className="rounded-2xl border border-violet-700/50 bg-gradient-to-br from-violet-900/30 to-slate-900/50 p-5">
         <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-1">Your Archetype</p>
-        <h2 className="text-xl font-black text-white mb-2">{profile.archetype}</h2>
-        <p className="text-slate-300 text-sm leading-relaxed">{profile.archetypeDescription}</p>
+        <h2 className="text-2xl font-black text-white mb-2">{profile.archetype}</h2>
+        <p className="text-slate-300 text-sm leading-snug">{profile.archetypeDescription}</p>
       </div>
 
       {/* Presence Identity Card */}
@@ -205,7 +205,7 @@ export default function StyleProfilePage() {
           </span>
         </div>
         {profile.grooming && (
-          <p className="text-xs text-slate-500 mt-3 leading-relaxed border-t border-slate-800 pt-3">{profile.grooming}</p>
+          <p className="text-sm text-slate-300 font-medium mt-3 leading-snug border-t border-slate-800 pt-3">{profile.grooming}</p>
         )}
       </div>
 

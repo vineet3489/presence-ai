@@ -184,6 +184,7 @@ export interface PerceptionSimulationResult {
   replyProbability: number;
   profileStrengthScore: number;
   tags: PerceptionTags;
+  actionNow: string;
   narrative: string;
 }
 

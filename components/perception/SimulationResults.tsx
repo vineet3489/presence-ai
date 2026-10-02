@@ -15,8 +15,8 @@ interface Props {
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 px-3 py-3 text-center">
-      <p className="text-2xl font-black text-white">{Math.round(value)}%</p>
-      <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide">{label}</p>
+      <p className="text-3xl font-black text-white">{Math.round(value)}%</p>
+      <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">{label}</p>
     </div>
   );
 }
@@ -38,10 +38,17 @@ export function SimulationResults({ simulation, optimizer, onApplyVariant, apply
   const persona = getPersonaById(simulation.personaId);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {simulation.actionNow && (
+        <div className="rounded-2xl border border-amber-600/50 bg-gradient-to-br from-amber-900/30 to-slate-900 p-5">
+          <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-1.5">Do this now</p>
+          <p className="text-xl font-black text-white leading-snug">{simulation.actionNow}</p>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-violet-700/40 bg-gradient-to-br from-violet-950/30 to-slate-900/80 p-5">
         <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-3">
-          {persona?.label ?? 'Persona'} — first impression
+          {persona?.label ?? 'Persona'}
         </p>
         <div className="grid grid-cols-3 gap-2 mb-4">
           <StatTile label="Swipe" value={simulation.swipeProbability} />
@@ -54,7 +61,7 @@ export function SimulationResults({ simulation, optimizer, onApplyVariant, apply
           <TagPill label="Trust" value={simulation.tags.trustworthiness} />
           <TagPill label="Approachability" value={simulation.tags.approachability} />
         </div>
-        <p className="text-sm text-slate-300 leading-relaxed">{simulation.narrative}</p>
+        <p className="text-sm text-slate-400 leading-relaxed">{simulation.narrative}</p>
       </div>
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
@@ -86,7 +93,7 @@ export function SimulationResults({ simulation, optimizer, onApplyVariant, apply
       </div>
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <p className="text-sm font-semibold text-white mb-2">Suggestions</p>
+        <p className="text-sm font-semibold text-white mb-2">Also fix</p>
         <ul className="space-y-1.5">
           {optimizer.suggestions.map((s, i) => (
             <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
