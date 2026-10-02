@@ -25,7 +25,7 @@ export default function TermsPage() {
           },
           {
             title: '4. Subscription & Payments',
-            body: `After your 48-hour free trial, continued access requires a paid subscription (currently ₹99/week). Payments are processed by Razorpay. Subscriptions are non-refundable unless required by applicable law. We reserve the right to change pricing with 7 days' notice.`,
+            body: `After your 3-day free trial, continued access requires a paid subscription (currently ₹79/week, billed weekly until cancelled). You will not be charged if you cancel before the trial ends. Payments are processed by Razorpay. Subscriptions are non-refundable unless required by applicable law. We reserve the right to change pricing with 7 days' notice.`,
           },
           {
             title: '5. Acceptable Use',

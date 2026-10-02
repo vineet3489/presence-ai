@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ simulation, optimizer, sessionId: session?.id });
+    return NextResponse.json({ simulation, optimizer, sessionId: session?.id, isSubscribed });
   } catch (err) {
     console.error('[perception-simulation]', err);
     return NextResponse.json({ error: 'Simulation failed. Please try again.' }, { status: 500 });

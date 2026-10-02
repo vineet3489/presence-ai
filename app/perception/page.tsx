@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, RotateCcw, Share2, Layers, Clock, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { ValueHeader } from '@/components/ui/ValueHeader';
+import { TrialUpsell } from '@/components/payment/TrialUpsell';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { PersonaSelector } from '@/components/perception/PersonaSelector';
 import { SimulationResults } from '@/components/perception/SimulationResults';
@@ -39,6 +40,8 @@ export default function PerceptionPage() {
   const [after, setAfter] = useState<PerceptionSimulationResult | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(true);
+  const [limitHit, setLimitHit] = useState(false);
 
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -82,9 +85,10 @@ export default function PerceptionPage() {
         )
       );
 
-      const limitHit = responses.find(({ res }) => res.status === 403);
-      if (limitHit) {
-        setErrorMsg(`You've hit today's free limit (${limitHit.data.limit} simulations). Start a trial for unlimited checks.`);
+      const limitResponse = responses.find(({ res }) => res.status === 403);
+      if (limitResponse) {
+        setErrorMsg(`You've used today's ${limitResponse.data.limit} free checks.`);
+        setLimitHit(true);
         setState('error');
         return;
       }
@@ -99,6 +103,7 @@ export default function PerceptionPage() {
       }));
 
       setResults(parsed);
+      setIsSubscribed(responses.every(({ data }) => data.isSubscribed !== false));
       setState('done');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong');
@@ -238,6 +243,8 @@ export default function PerceptionPage() {
             />
           )}
 
+          {!isSubscribed && <TrialUpsell />}
+
           <div className="flex gap-3">
             <Button variant="outline" onClick={handleShare} disabled={sharing} className="flex-1 gap-2">
               {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} Share
@@ -290,6 +297,8 @@ export default function PerceptionPage() {
               <p className="text-sm text-red-400">{errorMsg}</p>
             </div>
           )}
+
+          {limitHit && <TrialUpsell />}
 
           <Button onClick={handleRun} disabled={!canRun || state === 'analyzing'} className="w-full" size="lg">
             {state === 'analyzing' ? <Loader2 size={16} className="animate-spin" /> : 'Run Perception Check'}

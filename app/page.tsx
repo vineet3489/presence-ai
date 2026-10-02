@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, TrendingUp, Eye, ScanFace, Mic, Sparkles, MessageCircleHeart, Heart } from 'lucide-react';
+import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, TrendingUp, Eye, ScanFace, Mic, Sparkles, MessageCircleHeart, Heart, Lock, ShieldCheck, XCircle } from 'lucide-react';
 import { PERSONAS } from '@/lib/personas';
 import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
@@ -150,7 +150,7 @@ export default function LandingPage() {
           </Link>
           <Link href="/login">
             <Button size="sm" className="bg-violet-600 hover:bg-violet-500 gap-1.5">
-              Try free <ArrowRight size={14} />
+              Try it free <ArrowRight size={14} />
             </Button>
           </Link>
         </div>
@@ -183,7 +183,7 @@ export default function LandingPage() {
               <Link href="/login">
                 <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-8 h-14">
                   <Play size={16} className="fill-white text-white" />
-                  Run My Perception Check
+                  Try it free
                 </Button>
               </Link>
               <Link href="/login">
@@ -194,7 +194,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-slate-400">
-              {['Free daily checks', 'Ready in ~2 minutes', 'Built for Indian men'].map(t => (
+              {['First check free — no card', 'Results in 2 minutes', 'Photos stay private'].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-500" /> {t}
                 </span>
@@ -214,9 +214,9 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
           {[
             { num: `${PERSONAS.length} personas`, desc: 'simulate real reactions' },
-            { num: '90 days', desc: 'structured coaching plan' },
-            { num: '7 AI tools', desc: 'perception · voice · style · practice' },
-            { num: '₹79', desc: 'per week · cancel anytime' },
+            { num: '2 min', desc: 'to your first result' },
+            { num: '3 days', desc: 'full access, free' },
+            { num: '₹79', desc: 'per week after · cancel anytime' },
           ].map(({ num, desc }) => (
             <div key={num}>
               <p className="text-2xl font-black gradient-text">{num}</p>
@@ -355,26 +355,93 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── PRICING STRIP ── */}
-      <section className="py-16 px-5">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-slate-500 text-sm mb-6">Simple pricing. Cancel anytime.</p>
-          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
+      {/* ── PRICING ── */}
+      <section id="pricing" className="py-20 px-5">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-2">Try everything free for 3 days</h2>
+            <p className="text-slate-400">Then less than a coffee a week.</p>
+          </div>
+          <div className="rounded-3xl border border-violet-600/60 bg-gradient-to-br from-violet-950/50 to-slate-900 p-6 shadow-2xl shadow-violet-950/40">
+            <div className="flex items-baseline justify-center gap-2 mb-1">
+              <span className="text-5xl font-black text-white">₹0</span>
+              <span className="text-slate-400">today</span>
+            </div>
+            <p className="text-center text-slate-300 mb-6">then <span className="text-white font-bold">₹79/week</span> · cancel anytime</p>
+
+            <div className="space-y-3 mb-6">
+              {[
+                { day: 'Today', text: 'Add card or UPI — ₹0 charged', dot: 'bg-emerald-500' },
+                { day: 'Days 1–3', text: 'Every tool, unlimited', dot: 'bg-violet-500' },
+                { day: 'Day 4', text: '₹79/week starts — or cancel before & pay nothing', dot: 'bg-slate-500' },
+              ].map(({ day, text, dot }) => (
+                <div key={day} className="flex items-start gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${dot} mt-1.5 shrink-0`} />
+                  <p className="text-sm text-slate-300"><span className="text-white font-bold">{day}</span> — {text}</p>
+                </div>
+              ))}
+            </div>
+
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-2 mb-6">
+              {['Unlimited Perception Checks', 'Face Scan', 'Voice Check', 'Your Ideal Look', 'Chat Coach', 'Date Prep'].map((f) => (
+                <li key={f} className="flex items-center gap-1.5 text-xs text-slate-300">
+                  <CheckCircle2 size={13} className="text-emerald-500 shrink-0" /> {f}
+                </li>
+              ))}
+            </ul>
+
+            <Link href="/login">
+              <Button size="lg" className="w-full h-14 bg-violet-600 hover:bg-violet-500 text-base font-bold gap-2">
+                Try it free <ArrowRight size={18} />
+              </Button>
+            </Link>
+            <p className="text-[11px] text-slate-500 text-center mt-3">Cards · UPI AutoPay · Secured by Razorpay</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TRUST ── */}
+      <section className="border-y border-slate-800/60 bg-slate-900/30 py-16 px-5">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-black text-white text-center mb-10">Built to be trusted</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Weekly', price: '₹149', period: '/week', note: 'Try it out' },
-              { label: 'Monthly', price: '₹499', period: '/month', note: 'Most popular', highlight: true },
-              { label: 'Annual', price: '₹1,999', period: '/year', note: 'Save 67%' },
-            ].map(({ label, price, period, note, highlight }) => (
-              <div key={label} className={`rounded-2xl border p-4 text-center ${highlight ? 'border-violet-600 bg-violet-950/30' : 'border-slate-800 bg-slate-900/50'}`}>
-                {highlight && <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider mb-1">Best value</p>}
-                <p className="text-white font-bold text-sm">{label}</p>
-                <p className={`text-2xl font-black mt-1 ${highlight ? 'text-violet-300' : 'text-white'}`}>{price}</p>
-                <p className="text-xs text-slate-500">{period}</p>
-                <p className="text-[10px] text-slate-500 mt-1">{note}</p>
+              { icon: Lock, title: 'Private by design', desc: 'Only you can see your photos and results. We never sell your data.' },
+              { icon: ShieldCheck, title: 'Secure payments', desc: 'Checkout runs on Razorpay. We never see your card number.' },
+              { icon: XCircle, title: 'Cancel in 2 taps', desc: 'Settings → Cancel. No calls, no emails, no catch.' },
+              { icon: Heart, title: 'Honest, never harsh', desc: 'We don\'t rate your looks. We show what changes how people respond.' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
+                <Icon size={20} className="text-emerald-400 mb-3" />
+                <p className="text-white font-bold text-sm mb-1">{title}</p>
+                <p className="text-slate-400 text-xs leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-600 mt-4">3-day free trial · UPI AutoPay · Cancel before Day 4, pay nothing</p>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="py-16 px-5">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-black text-white text-center mb-8">Questions</h2>
+          <div className="space-y-2">
+            {[
+              { q: 'Will I be charged today?', a: 'No. You pay ₹0 today. Your first ₹79 charge is on Day 4 — only if you don\'t cancel.' },
+              { q: 'How do I cancel?', a: 'Settings → Cancel subscription. It takes 10 seconds, and you keep access until the period ends.' },
+              { q: 'Can I try it without a card?', a: 'Yes. Your first Perception Check is free — no card needed. Add a card only when you want everything unlocked.' },
+              { q: 'Are these real people reacting?', a: 'They\'re AI personas modelled on how real people swipe — different ages, cities and tastes. Fast, private, and nobody you know sees your photo.' },
+              { q: 'Is my photo safe?', a: 'Your photos are visible only to you. You can ask us to delete your account and all data at any time.' },
+            ].map(({ q, a }) => (
+              <details key={q} className="group rounded-xl border border-slate-800 bg-slate-900/40 px-5 py-4">
+                <summary className="flex items-center justify-between cursor-pointer list-none text-white font-semibold text-sm">
+                  {q}
+                  <ChevronRight size={16} className="text-slate-500 transition-transform group-open:rotate-90 shrink-0" />
+                </summary>
+                <p className="text-slate-400 text-sm mt-2 leading-relaxed">{a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -383,18 +450,16 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
             See how people<br />
-            <span className="gradient-text">actually see you. Free.</span>
+            <span className="gradient-text">actually see you.</span>
           </h2>
-          <p className="text-slate-400 text-lg mb-8">
-            Upload a photo and bio. Get your first perception check free, today. Takes 2 minutes.
-          </p>
+          <p className="text-slate-400 text-lg mb-8">Your first check takes 2 minutes. It&apos;s free.</p>
           <Link href="/login">
             <Button size="lg" className="bg-violet-600 hover:bg-violet-500 gap-2 text-base px-10 py-6">
               <Play size={16} className="fill-white text-white" />
-              Run My Perception Check <ArrowRight size={18} />
+              Try it free <ArrowRight size={18} />
             </Button>
           </Link>
-          <p className="text-xs text-slate-600 mt-4">Free daily checks · No credit card required</p>
+          <p className="text-xs text-slate-500 mt-4">First check free · Full access 3 days free · then ₹79/week · cancel anytime</p>
         </div>
       </section>
 
