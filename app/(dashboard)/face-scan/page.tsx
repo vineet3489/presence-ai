@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { AppearanceResults } from '@/components/camera/AppearanceResults';
 import { Button } from '@/components/ui/button';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import { BiometricConsentModal } from '@/components/ui/BiometricConsentModal';
-import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles, ArrowRight, ScanFace } from 'lucide-react';
 
 type Objective = 'date' | 'interview' | 'general';
 const OBJECTIVES: { value: Objective; label: string; sub: string; icon: React.ElementType }[] = [
@@ -176,12 +177,12 @@ export default function FaceScanPage() {
       {showConsent && (
         <BiometricConsentModal onConsent={() => setShowConsent(false)} />
       )}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-white">Face Scan</h1>
-        <p className="text-slate-400 mt-1 text-sm md:text-base">
-          Upload a photo — get personalized style & appearance coaching
-        </p>
-      </div>
+      <ValueHeader
+        icon={ScanFace}
+        title="Face Scan"
+        promise="Look your best — know exactly what suits your face."
+        gets={['Haircut for your face shape', 'Colors that flatter your skin', 'Grooming fixes']}
+      />
 
       {state === 'done' && result ? (
         <div className="space-y-6">

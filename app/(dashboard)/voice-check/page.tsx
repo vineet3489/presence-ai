@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Button } from '@/components/ui/button';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import { BiometricConsentModal } from '@/components/ui/BiometricConsentModal';
-import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
+import { Loader2, RotateCcw, Clock, ChevronDown, ChevronUp, Heart, Briefcase, Sparkles, ArrowRight, Mic } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { VoiceResult } from '@/types';
 
@@ -176,12 +177,12 @@ export default function VoiceCheckPage() {
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
       {showConsent && <BiometricConsentModal onConsent={() => setShowConsent(false)} />}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-white">Voice Check</h1>
-        <p className="text-slate-400 mt-1 text-sm md:text-base">
-          Record yourself speaking — get coaching on clarity, tone, and grammar
-        </p>
-      </div>
+      <ValueHeader
+        icon={Mic}
+        title="Voice Check"
+        promise="Sound confident — not nervous — when you talk."
+        gets={['Your filler words, counted', 'Pace & clarity score', 'Drills to fix it today']}
+      />
 
       {state === 'done' && result ? (
         <div className="space-y-6">

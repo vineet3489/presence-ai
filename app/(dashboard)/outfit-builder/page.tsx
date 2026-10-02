@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Shirt, Palette, RefreshCw } from 'lucide-react';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 
 interface Outfit {
   name: string;
@@ -72,12 +73,12 @@ export default function OutfitBuilderPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-lg mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Shirt size={20} className="text-amber-400" /> Outfit Builder
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">3 specific outfit options for any occasion</p>
-      </div>
+      <ValueHeader
+        icon={Shirt}
+        title="Outfit Builder"
+        promise="Know exactly what to wear — for any occasion."
+        gets={['3 complete outfits', 'Exact colors & fits']}
+      />
 
       {!result ? (
         <div className="space-y-5">

@@ -5,6 +5,7 @@ import { DatePrepWizard } from '@/components/quiz/DatePrepWizard';
 import { DateCoachingResults } from '@/components/quiz/DateCoachingResults';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Loader2, Shirt, CheckSquare, Heart, CheckCircle2 } from 'lucide-react';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import type { DatePrepData, DatePrepResult, OutfitBuilderData, OutfitBuilderResult, PreDateChecklistData, PreDateChecklistResult } from '@/types';
 
 type Tab = 'plan' | 'outfit' | 'checklist';
@@ -100,10 +101,12 @@ export default function DatePrepPage() {
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-black text-white">Date Prep</h1>
-        <p className="text-slate-400 mt-1">Everything you need to show up as your best self</p>
-      </div>
+      <ValueHeader
+        icon={Heart}
+        title="Date Prep"
+        promise="Walk into your date ready — not nervous."
+        gets={['What to wear', 'Opening line', 'Topics they\'ll love']}
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-900 rounded-xl p-1 mb-8">

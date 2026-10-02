@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, RotateCcw, Share2, Layers, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, RotateCcw, Share2, Layers, Clock, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import { CameraCapture } from '@/components/camera/CameraCapture';
 import { PersonaSelector } from '@/components/perception/PersonaSelector';
 import { SimulationResults } from '@/components/perception/SimulationResults';
@@ -212,12 +213,12 @@ export default function PerceptionPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-white">Perception Check</h1>
-        <p className="text-slate-400 mt-1 text-sm md:text-base">
-          See how a real persona reacts to your photo and bio — and exactly what to change.
-        </p>
-      </div>
+      <ValueHeader
+        icon={Eye}
+        title="Perception Check"
+        promise="Know if they'd swipe right — before you post."
+        gets={['Your swipe & reply odds', 'The #1 fix to make now', '3 ready-to-paste bios']}
+      />
 
       {state === 'done' && results.length > 0 ? (
         <div className="space-y-6">
@@ -264,7 +265,7 @@ export default function PerceptionPage() {
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Persona</label>
+              <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Who&apos;s swiping?</label>
               <button
                 onClick={() => { setComparisonMode((c) => !c); setSelectedPersonas([]); }}
                 className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1 border transition-colors ${

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Sparkles, RefreshCw, Palette, Shirt, Scissors, Lock, CreditCard, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { AvatarCard } from '@/components/dashboard/AvatarCard';
@@ -167,11 +168,14 @@ export default function StyleProfilePage() {
 
   return (
     <div className="p-4 md:p-8 max-w-lg mx-auto space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Sparkles size={20} className="text-violet-400" /> Style Profile
-        </h1>
-        <Button variant="outline" size="sm" onClick={() => fetchProfile(true)} disabled={refreshing}>
+      <div className="flex items-start justify-between gap-3">
+        <ValueHeader
+          icon={Sparkles}
+          title="Style Profile"
+          promise="Your personal look — one clear style to own."
+          gets={['Your style archetype', 'What to wear', 'Your ideal look']}
+        />
+        <Button variant="outline" size="sm" onClick={() => fetchProfile(true)} disabled={refreshing} className="shrink-0">
           {refreshing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
         </Button>
       </div>

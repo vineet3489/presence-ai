@@ -23,7 +23,7 @@ Always respond with a valid JSON object matching this exact structure:
   "groomingTips": ["string (reference what you actually see)", "string"],
   "postureCorrections": ["string", "string"] (or ["Your posture reads confident — keep your shoulders exactly where they are"] if good),
   "expressionTips": ["string (reference what their face actually communicates in this photo)", "string"],
-  "overallCoaching": "string (2-3 direct, personal paragraphs)"
+  "overallCoaching": "string (max 3 short sentences — compliment first, then the fix)"
 }`;
 
 export type ScanObjective = 'date' | 'interview' | 'general';
@@ -83,7 +83,7 @@ Always respond with a valid JSON object matching this exact structure:
   "strengthsList": ["string (quote or reference something specific from their transcript)", "string"],
   "improvementsList": ["string (name the exact pattern with a quote as evidence)", "string", "string"],
   "exercises": ["string (specific drill with exact words to practice)", "string", "string"],
-  "overallCoaching": "string (2-3 personal paragraphs referencing what they actually said)"
+  "overallCoaching": "string (max 3 short sentences referencing what they actually said)"
 }`;
 
 const VOICE_OBJECTIVE_CONTEXT: Record<ScanObjective, string> = {
@@ -132,7 +132,7 @@ Always respond with a valid JSON object matching this exact structure:
   "bodyLanguageTips": ["string", "string", "string"],
   "thingsToAvoid": ["string", "string"],
   "nervousnessStrategy": "string (specific technique for their nervous trigger)",
-  "overallCoaching": "string (2-3 warm narrative paragraphs — speak like a supportive friend who also happens to be an expert)"
+  "overallCoaching": "string (max 2 short sentences — the one thing that matters most for this date)"
 }`;
 
 export function buildDatePrepPrompt(data: DatePrepData, profile: UserProfile | null): string {
@@ -167,12 +167,12 @@ You are candid but never harsh. You give real, specific, actionable advice — n
 Always respond with a valid JSON object matching this exact structure:
 {
   "yourPersonality": {
-    "summary": "string (2-3 sentences on their texting personality — how they come across)",
+    "summary": "string (1 sentence on their texting personality — how they come across)",
     "strengths": ["string", "string"],
     "blindSpots": ["string", "string"]
   },
   "theirPersonality": {
-    "summary": "string (2-3 sentences on the other person's personality inferred from their texts)",
+    "summary": "string (1 sentence on the other person's personality inferred from their texts)",
     "whatTheyRespondTo": ["string", "string", "string"],
     "redFlags": ["string"] (or [] if none)
   },
@@ -182,12 +182,12 @@ Always respond with a valid JSON object matching this exact structure:
     {
       "message": "string (the actual message to send)",
       "tone": "string (e.g. playful, direct, vulnerable, curious)",
-      "reasoning": "string (why this works for this specific person and intention)"
+      "reasoning": "string (max 12 words — why this works for this person)"
     }
   ],
   "doList": ["string", "string", "string"],
   "dontList": ["string", "string"],
-  "overallRead": "string (2-3 paragraphs of narrative coaching — speak like a brutally honest but caring friend)"
+  "overallRead": "string (max 2 short sentences — the blunt bottom line, like an honest friend)"
 }
 
 Generate exactly 3 suggestedReplies that are meaningfully different in tone and approach.`;
@@ -428,7 +428,7 @@ export const PERCEPTION_SIMULATION_SYSTEM_PROMPT = `You are Percepta — a perce
 
 CRITICAL FRAMING RULES:
 - Positioning is "AI that improves how people respond to you" — NEVER "AI that rates your attractiveness". You are not a judge; you are a simulation of one specific persona's fast, subjective, swipe-app reaction.
-- Write the narrative from the PERSONA'S point of view reacting to the profile — e.g. "A 24-year-old woman in Delhi sees this photo and..." — NEVER as a direct verdict on the user ("You are..." / "You look..."). The user is never addressed as flawed; the persona's reaction is described.
+- Write the narrative from the PERSONA'S point of view reacting to the profile — e.g. "She sees this photo and..." / "He reads this bio and..." — match the persona's gender — NEVER as a direct verdict on the user ("You are..." / "You look..."). The user is never addressed as flawed; the persona's reaction is described.
 - NEVER produce a bare negative statement. Every observation that could read as critical must be immediately paired with a concrete, actionable fix in the same breath. If you can't pair a critique with a fix, don't include the critique.
 - Banned words/phrases: "unattractive", "ugly", "bad photo", "unappealing", "boring", or any blunt judgment of the person's looks. Reframe everything as a signal read: "the photo reads as guarded", "this reduces approachability", "the bio reads generic, which lowers curiosity" — signal language, not verdicts.
 - profileStrengthScore is explicitly RELATIVE (how this profile compares to typical profiles this persona swipes on), not an absolute judgment of the person's worth or attractiveness. Frame it that way internally even though it's returned as a plain number.
@@ -454,9 +454,9 @@ Always respond with a valid JSON object matching this exact structure:
   },
   "optimizer": {
     "bioVariants": [
-      {"tone": "confident", "text": "string (rewritten bio, confident tone)"},
-      {"tone": "funny", "text": "string (rewritten bio, funny tone)"},
-      {"tone": "minimalist", "text": "string (rewritten bio, minimalist tone)"}
+      {"tone": "confident", "text": "string (rewritten bio, confident tone, max 140 characters)"},
+      {"tone": "funny", "text": "string (rewritten bio, funny tone, max 140 characters)"},
+      {"tone": "minimalist", "text": "string (rewritten bio, minimalist tone, max 140 characters)"}
     ],
     "suggestions": ["string (specific, actionable, max 8 words)", "string", "string"]
   }

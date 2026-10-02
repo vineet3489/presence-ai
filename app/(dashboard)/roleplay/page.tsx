@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Send, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Send, RotateCcw, Volume2, VolumeX, MessagesSquare } from 'lucide-react';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import { Button } from '@/components/ui/button';
 import { useTranscription, speak } from '@/hooks/useTranscription';
 import { cn } from '@/lib/utils';
@@ -162,12 +163,12 @@ export default function RoleplayPage() {
   if (!scenario) {
     return (
       <div className="p-8 max-w-3xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-white">Conversation Roleplay</h1>
-          <p className="text-slate-400 mt-1">
-            Practice real-world approaches with an AI that responds like a real person. Get scored on every message.
-          </p>
-        </div>
+        <ValueHeader
+          icon={MessagesSquare}
+          title="Conversation Roleplay"
+          promise="Practice the conversation before it's real."
+          gets={['Realistic AI partner', 'Score on every message', 'Zero-stakes reps']}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SCENARIOS.map((s) => (

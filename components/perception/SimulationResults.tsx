@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPersonaById } from '@/lib/personas';
@@ -36,6 +37,8 @@ function TagPill({ label, value }: { label: string; value: string }) {
 
 export function SimulationResults({ simulation, optimizer, onApplyVariant, applying }: Props) {
   const persona = getPersonaById(simulation.personaId);
+  const [activeTone, setActiveTone] = useState(optimizer.bioVariants[0]?.tone);
+  const variant = optimizer.bioVariants.find((v) => v.tone === activeTone) ?? optimizer.bioVariants[0];
 
   return (
     <div className="space-y-4">
@@ -48,7 +51,7 @@ export function SimulationResults({ simulation, optimizer, onApplyVariant, apply
 
       <div className="rounded-2xl border border-violet-700/40 bg-gradient-to-br from-violet-950/30 to-slate-900/80 p-5">
         <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider mb-3">
-          {persona?.label ?? 'Persona'}
+          How {persona?.label ?? 'this persona'} sees you
         </p>
         <div className="grid grid-cols-3 gap-2 mb-4">
           <StatTile label="Swipe" value={simulation.swipeProbability} />
@@ -61,47 +64,56 @@ export function SimulationResults({ simulation, optimizer, onApplyVariant, apply
           <TagPill label="Trust" value={simulation.tags.trustworthiness} />
           <TagPill label="Approachability" value={simulation.tags.approachability} />
         </div>
-        <p className="text-sm text-slate-400 leading-relaxed">{simulation.narrative}</p>
+        <p className="text-sm text-slate-300 italic border-l-2 border-violet-500/60 pl-3">&ldquo;{simulation.narrative}&rdquo;</p>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={14} className="text-violet-400" />
-          <span className="text-sm font-semibold text-white">Bio rewrites</span>
+      {variant && (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={14} className="text-violet-400" />
+            <span className="text-sm font-semibold text-white">Better bio — pick a vibe</span>
+          </div>
+          <div className="flex gap-1.5 mb-3">
+            {optimizer.bioVariants.map((v) => (
+              <button
+                key={v.tone}
+                onClick={() => setActiveTone(v.tone)}
+                className={`text-xs capitalize rounded-full px-3 py-1 border transition-colors ${
+                  v.tone === variant.tone
+                    ? 'border-violet-500 bg-violet-600 text-white'
+                    : 'border-slate-700 text-slate-400 hover:border-slate-500'
+                }`}
+              >
+                {v.tone}
+              </button>
+            ))}
+          </div>
+          <p className="text-base text-white leading-relaxed mb-3">{variant.text}</p>
+          {onApplyVariant && (
+            <Button
+              size="sm"
+              disabled={!!applying}
+              onClick={() => onApplyVariant(variant.text, variant.tone)}
+              className="gap-1.5"
+            >
+              {applying === variant.tone ? <Loader2 size={12} className="animate-spin" /> : 'Use this & see new odds'}
+            </Button>
+          )}
         </div>
-        <div className="space-y-2.5">
-          {optimizer.bioVariants.map((variant) => (
-            <div key={variant.tone} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3.5">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] uppercase tracking-wide text-violet-400 font-bold">{variant.tone}</span>
-                {onApplyVariant && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={applying === variant.tone}
-                    onClick={() => onApplyVariant(variant.text, variant.tone)}
-                    className="h-7 text-xs gap-1.5"
-                  >
-                    {applying === variant.tone ? <Loader2 size={11} className="animate-spin" /> : 'Apply & re-run'}
-                  </Button>
-                )}
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed">{variant.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <p className="text-sm font-semibold text-white mb-2">Also fix</p>
-        <ul className="space-y-1.5">
-          {optimizer.suggestions.map((s, i) => (
-            <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-              <span className="text-violet-400 mt-0.5">•</span> {s}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {optimizer.suggestions.length > 0 && (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+          <p className="text-sm font-semibold text-white mb-2">Quick wins</p>
+          <ul className="space-y-1.5">
+            {optimizer.suggestions.slice(0, 3).map((s, i) => (
+              <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">✓</span> {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

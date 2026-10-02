@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, Target, TrendingUp } from 'lucide-react';
+import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, TrendingUp, Eye, ScanFace, Mic, Sparkles, MessageCircleHeart, Heart } from 'lucide-react';
+import { PERSONAS } from '@/lib/personas';
 import { PresenceLogo } from '@/components/ui/PresenceLogo';
 
 /* ── Mock visuals ── */
@@ -56,7 +57,7 @@ function MockPerceptionPreview() {
         ✓ AI persona simulation
       </div>
       <div className="absolute -right-10 top-28 bg-violet-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
-        5 real personas
+        {PERSONAS.length} real personas
       </div>
       <div className="absolute -left-10 bottom-16 bg-amber-500/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap">
         +18% after 1 change
@@ -172,9 +173,10 @@ export default function LandingPage() {
               <span className="gradient-text">see you.</span>
             </h1>
 
-            <p className="text-slate-400 text-lg md:text-xl leading-relaxed mb-8 max-w-xl">
-              Upload a photo and bio. See how a real persona reacts — swipe odds, reply odds,
-              and exactly what to change to improve them.
+            <p className="text-slate-300 text-lg md:text-xl leading-relaxed mb-8 max-w-xl">
+              Get your <span className="text-white font-bold">swipe odds</span>, the{' '}
+              <span className="text-white font-bold">one fix</span> that raises them, and a coach for your
+              look, voice, and texts.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mb-8">
@@ -211,7 +213,7 @@ export default function LandingPage() {
       <div className="border-y border-slate-800/60 bg-slate-900/40 py-5 px-5">
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
           {[
-            { num: '5 personas', desc: 'simulate real reactions' },
+            { num: `${PERSONAS.length} personas`, desc: 'simulate real reactions' },
             { num: '90 days', desc: 'structured coaching plan' },
             { num: '7 AI tools', desc: 'perception · voice · style · practice' },
             { num: '₹79', desc: 'per week · cancel anytime' },
@@ -224,43 +226,28 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── THREE PROOF POINTS ── */}
+      {/* ── WHAT YOU GET ── */}
       <section className="max-w-6xl mx-auto px-5 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">Not another tips app.</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">PresenceAI is a 90-day coaching system that analyzes how you actually look, sound, and come across — then trains you to get better through daily action.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">What you get</h2>
+          <p className="text-slate-400">Every tool answers one question. In under 2 minutes.</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            {
-              icon: Target,
-              color: 'text-violet-400',
-              border: 'border-violet-800/40',
-              bg: 'bg-violet-950/20',
-              title: 'Real feedback, not generic tips',
-              desc: 'We analyze how you actually look and sound — expression, eye contact, filler words, pace — with real AI metrics. No guesses.',
-            },
-            {
-              icon: Flame,
-              color: 'text-amber-400',
-              border: 'border-amber-800/40',
-              bg: 'bg-amber-950/20',
-              title: 'A plan, not just a report',
-              desc: 'Daily missions, AI practice scenarios, and real-world challenges. Each one targeted at your weakest dimension, for your goal.',
-            },
-            {
-              icon: TrendingUp,
-              color: 'text-emerald-400',
-              border: 'border-emerald-800/40',
-              bg: 'bg-emerald-950/20',
-              title: 'Track your Dating Readiness',
-              desc: 'A single score across 7 dimensions — appearance, voice, confidence, conversation, body language. See yourself getting better week over week.',
-            },
-          ].map(({ icon: Icon, color, border, bg, title, desc }) => (
-            <div key={title} className={`rounded-2xl border ${border} ${bg} p-6`}>
-              <Icon size={22} className={`${color} mb-4`} />
-              <h3 className="text-white font-bold text-base mb-2">{title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+            { icon: Eye, color: 'text-violet-400', border: 'border-violet-700/50', bg: 'bg-violet-950/30', name: 'Perception Check', q: 'Would they swipe right?', a: 'Swipe & reply odds + the #1 fix', hero: true },
+            { icon: ScanFace, color: 'text-sky-400', border: 'border-sky-800/40', bg: 'bg-sky-950/20', name: 'Face Scan', q: 'What actually suits me?', a: 'Haircut, colors, grooming for your face' },
+            { icon: Mic, color: 'text-emerald-400', border: 'border-emerald-800/40', bg: 'bg-emerald-950/20', name: 'Voice Check', q: 'Do I sound confident?', a: 'Filler words counted + drills to fix them' },
+            { icon: Sparkles, color: 'text-amber-400', border: 'border-amber-800/40', bg: 'bg-amber-950/20', name: 'Style Profile', q: 'What\'s my look?', a: 'Your archetype, what to wear, your ideal look' },
+            { icon: MessageCircleHeart, color: 'text-pink-400', border: 'border-pink-800/40', bg: 'bg-pink-950/20', name: 'Chat Coach', q: 'What do I text back?', a: 'Their interest level + 3 ready replies' },
+            { icon: Heart, color: 'text-rose-400', border: 'border-rose-800/40', bg: 'bg-rose-950/20', name: 'Date Prep', q: 'How do I nail the date?', a: 'Outfit, opener, and topics they\'ll love' },
+          ].map(({ icon: Icon, color, border, bg, name, q, a, hero }) => (
+            <div key={name} className={`rounded-2xl border ${border} ${bg} p-6 ${hero ? 'ring-1 ring-violet-500/40' : ''}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <Icon size={18} className={color} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${color}`}>{name}</span>
+              </div>
+              <p className="text-white font-black text-xl leading-snug mb-1.5">{q}</p>
+              <p className="text-slate-400 text-sm">→ {a}</p>
             </div>
           ))}
         </div>
@@ -282,7 +269,7 @@ export default function LandingPage() {
               Always specific to you.
             </h2>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Not a tip to read — a real-world action to complete. Your mission each day is generated from your actual coaching data: targeting your weakest area, matched to your current week, calibrated to your streak.
+              Not a tip to read — a real action, aimed at your weakest area.
             </p>
             <ul className="space-y-3 mb-8">
               {[
@@ -322,7 +309,7 @@ export default function LandingPage() {
               — not a feature list.
             </h2>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Tell us your goal — dating, career, or overall confidence — and your 90-day roadmap is built around it. Week 1 is appearance basics. Week 5 is first date practice scenarios. Week 8 is your reassessment.
+              Pick your goal — dating, career, or confidence. Get a week-by-week plan and watch your score climb.
             </p>
             <ul className="space-y-3 mb-8">
               {[

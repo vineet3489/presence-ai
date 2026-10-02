@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { RotateCcw, MessageCircleHeart } from 'lucide-react';
+import { ValueHeader } from '@/components/ui/ValueHeader';
 import { ChatUploader } from '@/components/chat/ChatUploader';
 import { ChatCoachResults } from '@/components/chat/ChatCoachResults';
 import type { ChatCoachData, ChatCoachResult } from '@/types';
@@ -32,16 +33,12 @@ export default function ChatCoachPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <MessageCircleHeart size={22} className="text-pink-400" />
-          <h1 className="text-2xl font-black text-white">Chat Coach</h1>
-        </div>
-        <p className="text-slate-400 text-sm">
-          Paste a conversation from Instagram or WhatsApp. Get a personality read on both of you,
-          their interest level, and exactly what to say next — tailored to your intention.
-        </p>
-      </div>
+      <ValueHeader
+        icon={MessageCircleHeart}
+        title="Chat Coach"
+        promise="Never wonder what to text back again."
+        gets={['Their interest level', '3 replies ready to send', 'What to avoid']}
+      />
 
       {error && (
         <div className="bg-red-950/40 border border-red-800/40 rounded-lg px-4 py-3 text-red-300 text-sm">
