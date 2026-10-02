@@ -1,16 +1,77 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
+import { SITE, absoluteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'PresenceAI — Your Personal AI Presence Coach',
-  description: 'AI-powered coaching for appearance, voice, and social confidence. Look better, speak better, show up better.',
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: 'PresenceAI — Personality Development, Confidence & First Date Coaching',
+    template: '%s | PresenceAI',
+  },
+  description: SITE.description,
+  keywords: [
+    'personality development', 'personality development for men', 'how to be more confident',
+    'first date tips', 'first date tips for men', 'dating profile tips', 'how to look presentable',
+    'grooming tips for men', 'confidence coaching', 'self improvement', 'dating tips India',
+  ],
+  applicationName: SITE.name,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: SITE.name,
+    locale: 'en_IN',
+    url: '/',
+    title: 'PresenceAI — See how people actually see you',
+    description: SITE.description,
+    images: [{ url: SITE.ogImage, width: 720, height: 720, alt: 'Before and after: the same man styled at his best' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PresenceAI — See how people actually see you',
+    description: SITE.description,
+    images: [SITE.ogImage],
+  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
+  category: 'lifestyle',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#020617',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE.url}/#org`,
+      name: SITE.name,
+      url: SITE.url,
+      logo: absoluteUrl('/presence-logo.svg'),
+      email: SITE.email,
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE.url}/#website`,
+      name: SITE.name,
+      url: SITE.url,
+      inLanguage: 'en-IN',
+      publisher: { '@id': `${SITE.url}/#org` },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en-IN" className="dark">
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
         {children}
 
         {/* Meta Pixel */}

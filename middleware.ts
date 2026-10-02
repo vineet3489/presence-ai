@@ -1,7 +1,13 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Public marketing pages need no session — skip the Supabase auth round trip so they load fast.
+const PUBLIC_EXACT = new Set(['/', '/about', '/faq', '/privacy', '/terms', '/sitemap.xml', '/robots.txt']);
+const isPublicPath = (p: string) => PUBLIC_EXACT.has(p) || p === '/blog' || p.startsWith('/blog/');
+
 export async function middleware(request: NextRequest) {
+  if (isPublicPath(request.nextUrl.pathname)) return NextResponse.next();
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

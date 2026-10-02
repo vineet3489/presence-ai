@@ -1,14 +1,17 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import { ContentPage } from '@/components/marketing/SiteChrome';
 
-export const metadata = { title: 'Privacy Policy — PresenceAI' };
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'How PresenceAI collects, uses, stores, and protects your photos, voice recordings, and personal data.',
+  alternates: { canonical: '/privacy' },
+};
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16">
-      <div className="max-w-2xl mx-auto">
-        <Link href="/" className="text-xl font-black gradient-text">PresenceAI</Link>
-        <h1 className="text-3xl font-bold text-white mt-8 mb-2">Privacy Policy</h1>
-        <p className="text-slate-500 text-sm mb-10">Last updated: March 2026</p>
+    <ContentPage crumbs={[{ name: 'Privacy policy', href: '/privacy' }]}>
+        <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
+        <p className="text-slate-500 text-sm mb-10">Last updated: October 2026</p>
 
         {[
           {
@@ -17,7 +20,7 @@ export default function PrivacyPage() {
           },
           {
             title: '2. How We Use Your Information',
-            body: `Your data is used exclusively to provide and improve PresenceAI's coaching features. Photos and voice recordings are sent to Anthropic's Claude AI for analysis and are not stored beyond your session results. We do not sell your personal information to third parties.`,
+            body: `Your data is used exclusively to provide and improve PresenceAI's coaching features. Photos and voice recordings are processed by third-party AI providers (such as Anthropic and Google) solely to generate your results. Your photos, generated images, and results are stored in secure, access-controlled storage linked to your account so you can view your history and progress. We do not sell your personal information or share it for advertising.`,
           },
           {
             title: '3. Third-Party Services',
@@ -54,10 +57,6 @@ export default function PrivacyPage() {
           </div>
         ))}
 
-        <div className="border-t border-slate-800 pt-8 text-center">
-          <Link href="/" className="text-violet-400 text-sm hover:underline">← Back to PresenceAI</Link>
-        </div>
-      </div>
-    </div>
+    </ContentPage>
   );
 }

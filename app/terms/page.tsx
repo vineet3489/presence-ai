@@ -1,13 +1,16 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import { ContentPage } from '@/components/marketing/SiteChrome';
 
-export const metadata = { title: 'Terms of Service — PresenceAI' };
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'The terms for using PresenceAI, including the 3-day free trial, ₹79/week subscription, and cancellation.',
+  alternates: { canonical: '/terms' },
+};
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16">
-      <div className="max-w-2xl mx-auto">
-        <Link href="/" className="text-xl font-black gradient-text">PresenceAI</Link>
-        <h1 className="text-3xl font-bold text-white mt-8 mb-2">Terms of Service</h1>
+    <ContentPage crumbs={[{ name: 'Terms of service', href: '/terms' }]}>
+        <h1 className="text-3xl font-bold text-white mb-2">Terms of Service</h1>
         <p className="text-slate-500 text-sm mb-10">Last updated: March 2026</p>
 
         {[
@@ -62,10 +65,6 @@ export default function TermsPage() {
           </div>
         ))}
 
-        <div className="border-t border-slate-800 pt-8 text-center">
-          <Link href="/" className="text-violet-400 text-sm hover:underline">← Back to PresenceAI</Link>
-        </div>
-      </div>
-    </div>
+    </ContentPage>
   );
 }

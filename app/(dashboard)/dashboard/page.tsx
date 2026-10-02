@@ -199,18 +199,6 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-3 py-1">
-            <div className="flex -space-x-2">
-              {['🧑🏻', '👨🏽', '🧔🏼', '👦🏾', '🧑🏾'].map((emoji, i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-950 flex items-center justify-center text-sm">{emoji}</div>
-              ))}
-            </div>
-            <p className="text-xs text-slate-500">
-              <span className="text-white font-semibold">4,200+ men</span> are levelling up with PresenceAI
-            </p>
-          </div>
-
           {/* What you'll unlock — teaser grid */}
           <div>
             <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mb-2 px-1">Unlocks after your scan</p>

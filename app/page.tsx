@@ -4,10 +4,16 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, Play, CheckCircle2, ChevronRight, Flame, TrendingUp, Eye, ScanFace, Mic, Sparkles, MessageCircleHeart, Heart, Lock, ShieldCheck, XCircle } from 'lucide-react';
 import { PERSONAS } from '@/lib/personas';
 import { MemberCount, Testimonials, Transformation, PainSection, ScienceSection, ExampleResult } from '@/components/landing/ProofSections';
+import { SiteHeader, SiteFooter, JsonLd } from '@/components/marketing/SiteChrome';
+import { ALL_FAQS, faqJsonLd } from '@/lib/faq';
+import { POSTS } from '@/lib/blog';
 
 // Member count is read from the DB — refresh hourly rather than per request
 export const revalidate = 3600;
-import { PresenceLogo } from '@/components/ui/PresenceLogo';
+
+const LANDING_FAQS = ALL_FAQS.filter((f) =>
+  ['Will I be charged today?', 'How do I cancel?', 'Can I try it without a card?', 'Are real people rating my photo?', 'Is my photo safe?'].includes(f.q)
+);
 
 /* ── Mock visuals ── */
 
@@ -127,20 +133,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
 
-      {/* Nav */}
-      <nav className="border-b border-slate-800/60 px-5 py-4 flex items-center justify-between max-w-6xl mx-auto">
-        <PresenceLogo href="/" size="sm" />
-        <div className="flex items-center gap-2">
-          <Link href="/login">
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">Sign in</Button>
-          </Link>
-          <Link href="/login">
-            <Button size="sm" className="bg-violet-600 hover:bg-violet-500 gap-1.5">
-              Try it free <ArrowRight size={14} />
-            </Button>
-          </Link>
-        </div>
-      </nav>
+      <SiteHeader />
 
       {/* ── HERO ── */}
       <section className="max-w-6xl mx-auto px-5 pt-8 pb-12 md:pt-14 md:pb-16">
@@ -417,15 +410,10 @@ export default function LandingPage() {
       {/* ── FAQ ── */}
       <section className="py-16 px-5">
         <div className="max-w-2xl mx-auto">
+          <JsonLd data={faqJsonLd(LANDING_FAQS)} />
           <h2 className="text-2xl md:text-3xl font-black text-white text-center mb-8">Questions</h2>
           <div className="space-y-2">
-            {[
-              { q: 'Will I be charged today?', a: 'No. You pay ₹0 today. Your first ₹79 charge is on Day 4 — only if you don\'t cancel.' },
-              { q: 'How do I cancel?', a: 'Settings → Cancel subscription. It takes 10 seconds, and you keep access until the period ends.' },
-              { q: 'Can I try it without a card?', a: 'Yes. Your first Perception Check is free — no card needed. Add a card only when you want everything unlocked.' },
-              { q: 'Are these real people reacting?', a: 'They\'re AI personas modelled on how real people swipe — different ages, cities and tastes. Fast, private, and nobody you know sees your photo.' },
-              { q: 'Is my photo safe?', a: 'Your photos are visible only to you. You can ask us to delete your account and all data at any time.' },
-            ].map(({ q, a }) => (
+            {LANDING_FAQS.map(({ q, a }) => (
               <details key={q} className="group rounded-xl border border-slate-800 bg-slate-900/40 px-5 py-4">
                 <summary className="flex items-center justify-between cursor-pointer list-none text-white font-semibold text-sm">
                   {q}
@@ -433,6 +421,24 @@ export default function LandingPage() {
                 </summary>
                 <p className="text-slate-400 text-sm mt-2 leading-relaxed">{a}</p>
               </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── BLOG TEASER ── */}
+      <section className="border-t border-slate-800/60 py-16 px-5">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-end justify-between mb-6 gap-4">
+            <h2 className="text-2xl md:text-3xl font-black text-white">Free guides</h2>
+            <Link href="/blog" className="text-sm text-violet-300 hover:text-white shrink-0">All guides →</Link>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {POSTS.map((p) => (
+              <Link key={p.slug} href={`/blog/${p.slug}`} className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 hover:border-violet-600/60 transition-colors">
+                <p className="text-xs font-bold uppercase tracking-wider text-violet-400 mb-2">{p.category} · {p.readMinutes} min</p>
+                <h3 className="text-lg font-black text-white leading-snug group-hover:text-violet-200">{p.title}</h3>
+              </Link>
             ))}
           </div>
         </div>
@@ -456,13 +462,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-800/60 py-6 text-center text-sm text-slate-600">
-        <p>© {new Date().getFullYear()} PresenceAI · Built for men who want to show up better</p>
-        <div className="flex gap-4 justify-center mt-2">
-          <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
-          <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
